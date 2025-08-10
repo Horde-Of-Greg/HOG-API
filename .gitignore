@@ -1,0 +1,9 @@
+.env
+
+node_modules/
+
+storage/config/config.json
+storage/db
+storage/logs
+
+logs/
