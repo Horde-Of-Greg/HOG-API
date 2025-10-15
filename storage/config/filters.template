@@ -3,6 +3,7 @@
     "enabledFilters": [
       "drugs",
       "exploitation",
+      "exploits",
       "fraud",
       "poisons",
       "self-harm",

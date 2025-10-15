@@ -12,6 +12,6 @@ A document for transparency about which parts of the code are made using AI. Imp
 
 ### `storage/filters/*`
 
-- What is vibe coded: All the filters, severities, and descriptions, not the logic.
+- What is vibe coded: All the filter JSONs, except exploits.json
 - Reasons: I really don't feel like writing 150000 regexes manually, and I don't really care about doing this right.
 - Author: D-Alessian
