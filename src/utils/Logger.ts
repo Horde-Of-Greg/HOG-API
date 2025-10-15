@@ -22,9 +22,10 @@ export class Logger {
   simpleLog(type: LogType, message: string) {
     const name = `[${this.name}:${type.toUpperCase()}]`;
     const date = `[${this.getDateTime()}]`;
+    const whitespaces = " ".repeat("success".length - type.length);
     const content = message;
     const color = Logger.colors[type];
-    const log = `${color}${name}@${date}: ${content}${Logger.colors.reset}`;
+    const log = `${color}${name}${whitespaces}@${date}: ${content}${Logger.colors.reset}`;
     console.log(log);
   }
 
