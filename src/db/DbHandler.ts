@@ -10,6 +10,16 @@ export class DbHandler {
 
   constructor() {
     this.client = getRedisClient().client;
+    this.init();
+  }
+
+  async init() {
+    this.createGlobalRates();
+  }
+
+  async createGlobalRates() {
+    await this.client.set("GlobalRates", config.RATE_LIMIT.GLOBAL.MAX_STORED);
+    getLogger().simpleLog("info", "Global Rates Initialized");
   }
 
   async createUser(discordId: string) {
@@ -28,6 +38,15 @@ export class DbHandler {
     return true;
   }
 
+  async getGlobalRates() {
+    const rates = await this.client.get("GlobalRates");
+    if (!rates) {
+      getLogger().simpleLog("warn", "Error Fetching Global Rates");
+      return null;
+    }
+    return parseInt(rates);
+  }
+
   async getUsername(discordId: string) {
     const userData = await this.getUserData(discordId);
     return userData.username;
@@ -38,20 +57,49 @@ export class DbHandler {
     return parseInt(userData.rates);
   }
 
+  async updateGlobalRates(type: "give" | "take") {
+    const rates = await this.getGlobalRates();
+    if (!rates) return;
+    const globalConfig = config.RATE_LIMIT.GLOBAL;
+    let newRates: number;
+    let tmpRates: number;
+
+    switch (type) {
+      case "give":
+        tmpRates = rates + globalConfig.AMOUNT;
+        newRates =
+          tmpRates >= globalConfig.MAX_STORED
+            ? globalConfig.MAX_STORED
+            : tmpRates;
+        break;
+      case "take":
+        tmpRates = rates - 1;
+        newRates = tmpRates <= 0 ? 0 : tmpRates;
+        break;
+    }
+
+    await this.client.set("GlobalRates", newRates);
+  }
+
   async updateUserRates(discordId: string, type: "give" | "take") {
     const rates = await this.getUserRates(discordId);
     const userConfig = config.RATE_LIMIT.USER;
     let newRates: number;
+    let tmpRates: number;
+
     switch (type) {
       case "give":
-        newRates = rates + userConfig.AMOUNT;
-        return newRates >= userConfig.MAX_STORED
-          ? userConfig.MAX_STORED
-          : newRates;
+        tmpRates = rates + userConfig.AMOUNT;
+        newRates =
+          tmpRates >= userConfig.MAX_STORED ? userConfig.MAX_STORED : tmpRates;
+        break;
       case "take":
-        newRates = rates - 1;
-        return newRates <= 0 ? 0 : newRates;
+        tmpRates = rates - 1;
+        newRates = tmpRates <= 0 ? 0 : tmpRates;
+        break;
     }
+
+    await this.client.hSet(discordId, "rates", newRates);
   }
 
   async getUserData(discordId: string) {

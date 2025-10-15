@@ -3,7 +3,6 @@ import { config } from "../config/config";
 import { createHash, verify } from "crypto";
 import { LEVERET_PUBLIC_KEY } from "../loaders/keys";
 import { getLogger } from "../utils/Logger";
-import { rateLimits } from "./userRateLimits";
 
 export const leveretAuth = (
   req: Request,

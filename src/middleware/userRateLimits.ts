@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { getDbHandler } from "../db/DbHandler";
 import { getLogger } from "../utils/Logger";
 
-export const rateLimits = async (
+export const userRateLimits = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -14,6 +14,7 @@ export const rateLimits = async (
     getLogger().simpleLog("warn", `User: ${username} got rate limited`);
     res.status(429).json({ error: "You're Being Rate Limited" });
   }
+  getDbHandler().updateUserRates(userId, "take");
   next();
 };
 
