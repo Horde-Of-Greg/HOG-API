@@ -1,0 +1,42 @@
+{
+  "name": "Illegal Drugs",
+  "description": "Filters content related to drug synthesis, manufacturing, and trafficking",
+  "patterns": [
+    {
+      "pattern": "\\b(synthesize|manufacture|make|produce|cook)\\s+(meth|methamphetamine|cocaine|heroin|fentanyl|lsd|mdma|ecstasy)\\b",
+      "severity": "high",
+      "description": "Drug synthesis or manufacturing"
+    },
+    {
+      "pattern": "\\b(drug\\s+)?(synthesis|manufacturing|production)\\s+(guide|tutorial|method|process)\\b",
+      "severity": "high",
+      "description": "Drug production guides"
+    },
+    {
+      "pattern": "\\bcrack\\s+cocaine\\s+(recipe|method|process)\\b",
+      "severity": "high",
+      "description": "Crack cocaine production"
+    },
+    {
+      "pattern": "\\b(grow|cultivate)\\s+marijuana\\s+(indoor|commercial|large\\s*scale)\\b",
+      "severity": "medium",
+      "description": "Large-scale marijuana cultivation"
+    },
+    {
+      "pattern": "\\b(extract|purify)\\s+(cocaine|heroin|fentanyl|opioid)\\b",
+      "severity": "high",
+      "description": "Drug extraction or purification"
+    },
+    {
+      "pattern": "\\b(meth|methamphetamine)\\s+(lab|recipe|cook|production)\\b",
+      "severity": "high",
+      "description": "Methamphetamine production"
+    },
+    {
+      "pattern": "\\b(drug\\s+)?(trafficking|smuggling)\\s+(method|route|strategy)\\b",
+      "severity": "high",
+      "description": "Drug trafficking methods"
+    }
+  ]
+}
+

@@ -1,5 +1,5 @@
 import { config } from "../config/config";
-import { LogType } from "../types/logs";
+import { LogType } from "../types/server";
 
 let logger: Logger | null = null;
 

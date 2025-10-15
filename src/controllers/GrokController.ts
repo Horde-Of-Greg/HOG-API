@@ -29,8 +29,9 @@ export class GrokController {
   handler =
     (type: SystemPromptChoice): RequestHandler =>
     async (req: Request, res: Response, next: NextFunction) => {
+      const reqBody = req.body;
+
       try {
-        const reqBody = req.body;
         if (!reqBody) throw new Error();
         const completion = await this.answerQuestionGeneric(reqBody, type);
         res.json({ completion: completion });

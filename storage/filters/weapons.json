@@ -1,0 +1,42 @@
+{
+  "name": "Weapons & Explosives",
+  "description": "Filters content related to creating weapons, explosives, and illegal firearms",
+  "patterns": [
+    {
+      "pattern": "\\b(make|build|create|craft|assemble)\\s+(a\\s+)?(bomb|explosive|grenade|molotov|pipe\\s*bomb|ied)\\b",
+      "severity": "high",
+      "description": "Creating explosives or bombs"
+    },
+    {
+      "pattern": "\\b(gun|firearm|rifle|pistol|weapon)\\s+(blueprint|schematic|plan|design)\\b",
+      "severity": "high",
+      "description": "Weapon blueprints or designs"
+    },
+    {
+      "pattern": "\\b(illegal|unregistered|unlicensed)\\s+(weapon|firearm|gun)\\b",
+      "severity": "medium",
+      "description": "Illegal weapons"
+    },
+    {
+      "pattern": "\\b3d\\s*print(ed|ing)?\\s+(gun|firearm|weapon)\\b",
+      "severity": "high",
+      "description": "3D printed weapons"
+    },
+    {
+      "pattern": "\\bammonium\\s*nitrate\\s+(explosive|bomb)\\b",
+      "severity": "high",
+      "description": "Explosive materials"
+    },
+    {
+      "pattern": "\\b(assemble|build)\\s+(ar-?15|ak-?47|semi\\s*auto)\\b",
+      "severity": "medium",
+      "description": "Assembling specific firearms"
+    },
+    {
+      "pattern": "\\b(silencer|suppressor)\\s+(diy|homemade|build|make)\\b",
+      "severity": "high",
+      "description": "DIY weapon suppressors"
+    }
+  ]
+}
+

@@ -1,0 +1,32 @@
+{
+  "name": "Hateful & Violent Content",
+  "description": "Filters content related to terrorism, mass violence, and hate groups",
+  "patterns": [
+    {
+      "pattern": "\\b(plan|commit|carry\\s*out)\\s+(mass\\s+shooting|school\\s+shooting|terrorist\\s+attack)\\b",
+      "severity": "critical",
+      "description": "Planning mass violence"
+    },
+    {
+      "pattern": "\\b(genocide|ethnic\\s+cleansing)\\s+(plan|method|justify)\\b",
+      "severity": "critical",
+      "description": "Genocide or ethnic cleansing"
+    },
+    {
+      "pattern": "\\b(neo\\s*nazi|white\\s+supremac|kkk)\\s+(recruit|propaganda|manifesto)\\b",
+      "severity": "high",
+      "description": "Hate group propaganda"
+    },
+    {
+      "pattern": "\\b(terror|terrorist)\\s+(attack|plot|plan)\\s+(execute|carry\\s*out)\\b",
+      "severity": "critical",
+      "description": "Terrorist planning"
+    },
+    {
+      "pattern": "\\b(mass|spree)\\s+(shooting|killing)\\s+(plan|method)\\b",
+      "severity": "critical",
+      "description": "Mass killing planning"
+    }
+  ]
+}
+

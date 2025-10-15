@@ -1,0 +1,32 @@
+{
+  "name": "Privacy Violation & Harassment",
+  "description": "Filters content related to doxxing, stalking, and harassment",
+  "patterns": [
+    {
+      "pattern": "\\b(dox|doxx|swat)\\s+(someone|person|user)\\b",
+      "severity": "high",
+      "description": "Doxxing or swatting"
+    },
+    {
+      "pattern": "\\b(find|get|obtain)\\s+(personal\\s+information|home\\s+address|phone\\s+number)\\s+(of|for)\\b",
+      "severity": "high",
+      "description": "Obtaining personal information"
+    },
+    {
+      "pattern": "\\b(stalk|track|locate)\\s+(someone|person)\\s+(online|offline)\\b",
+      "severity": "high",
+      "description": "Stalking or tracking"
+    },
+    {
+      "pattern": "\\bswatting\\s+(guide|method|how\\s+to)\\b",
+      "severity": "high",
+      "description": "Swatting guides"
+    },
+    {
+      "pattern": "\\b(revenge|non-consensual)\\s+(porn|intimate\\s+images)\\b",
+      "severity": "high",
+      "description": "Revenge porn"
+    }
+  ]
+}
+

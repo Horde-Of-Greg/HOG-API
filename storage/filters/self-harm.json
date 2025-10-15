@@ -1,0 +1,37 @@
+{
+  "name": "Self-Harm & Suicide",
+  "description": "Filters content related to self-harm and suicide methods",
+  "patterns": [
+    {
+      "pattern": "\\b(painless|easiest|quickest)\\s+(way\\s+to\\s+)?(commit\\s+suicide|kill\\s+myself|end\\s+my\\s+life)\\b",
+      "severity": "critical",
+      "description": "Suicide methods"
+    },
+    {
+      "pattern": "\\b(suicide|overdose)\\s+(method|technique|guide)\\b",
+      "severity": "critical",
+      "description": "Suicide guides"
+    },
+    {
+      "pattern": "\\b(cut|harm)\\s+myself\\s+(guide|method|how)\\b",
+      "severity": "high",
+      "description": "Self-harm methods"
+    },
+    {
+      "pattern": "\\b(hanging|poisoning|overdose)\\s+(method|instructions)\\b",
+      "severity": "critical",
+      "description": "Specific suicide methods"
+    },
+    {
+      "pattern": "\\b(best|effective)\\s+(suicide|self\\s*harm)\\s+method\\b",
+      "severity": "critical",
+      "description": "Seeking effective methods"
+    },
+    {
+      "pattern": "\\bcommit\\s+suicide\\s+(with|using)\\b",
+      "severity": "critical",
+      "description": "Suicide planning"
+    }
+  ]
+}
+

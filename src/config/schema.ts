@@ -1,7 +1,12 @@
 import z from "zod";
-import { ConfigFileSchema, EnvFileSchema } from "./fileSchema";
+import {
+  ConfigFileSchema,
+  EnvFileSchema,
+  FiltersConfigFileSchema,
+} from "./fileSchema";
 
 export const EnvSchema = EnvFileSchema;
+export const FilterConfigSchema = FiltersConfigFileSchema;
 
 export const ConfigSchema = ConfigFileSchema.transform((f) => ({
   PORT: f.port,
@@ -32,3 +37,4 @@ export const ConfigSchema = ConfigFileSchema.transform((f) => ({
 
 export type Env = z.infer<typeof EnvSchema>;
 export type Config = z.infer<typeof ConfigSchema>;
+export type FiltersConfig = z.infer<typeof FilterConfigSchema>;

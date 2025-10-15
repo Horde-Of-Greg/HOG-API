@@ -1,0 +1,32 @@
+{
+  "name": "Dangerous Substances & Poisons",
+  "description": "Filters content related to poisons, toxins, and chemical/biological weapons",
+  "patterns": [
+    {
+      "pattern": "\\b(poison|toxin)\\s+(recipe|method|create|make)\\b",
+      "severity": "high",
+      "description": "Creating poisons or toxins"
+    },
+    {
+      "pattern": "\\b(ricin|cyanide|arsenic)\\s+(extract|produce|obtain)\\b",
+      "severity": "critical",
+      "description": "Specific deadly poisons"
+    },
+    {
+      "pattern": "\\b(deadly|lethal)\\s+(poison|substance|chemical)\\b",
+      "severity": "high",
+      "description": "Lethal substances"
+    },
+    {
+      "pattern": "\\b(nerve\\s+agent|chemical\\s+weapon)\\s+(create|make|synthesize)\\b",
+      "severity": "critical",
+      "description": "Chemical weapons"
+    },
+    {
+      "pattern": "\\b(biological\\s+weapon|bioweapon)\\s+(create|develop)\\b",
+      "severity": "critical",
+      "description": "Biological weapons"
+    }
+  ]
+}
+

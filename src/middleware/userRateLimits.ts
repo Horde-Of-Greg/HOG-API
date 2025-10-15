@@ -9,13 +9,16 @@ export const userRateLimits = async (
   next: NextFunction
 ): Promise<void> => {
   const userId = req.body.userId;
-  const username = getDbHandler().getUsername(userId);
-  const isAllowed = await checkRateLimits(req.body.userId);
+  const isAllowed = await checkRateLimits(userId);
+
   if (!isAllowed) {
+    const username = await getDbHandler().getUsername(userId);
     getLogger().simpleLog("warn", `User: ${username} got rate limited`);
     res.status(429).json({ error: "You're Being Rate Limited" });
+    return;
   }
-  getDbHandler().updateUserRates(userId, "take");
+
+  await getDbHandler().updateUserRates(userId, "take");
   next();
 };
 

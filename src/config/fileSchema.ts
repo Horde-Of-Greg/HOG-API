@@ -1,4 +1,4 @@
-import z, { base64 } from "zod";
+import z, { base64, string } from "zod";
 
 export const EnvFileSchema = z.object({
   GROK_API_KEY: z.string().min(1),
@@ -38,4 +38,15 @@ export const ConfigFileSchema = z.object({
   }),
   skipLeveretAuth: z.boolean(),
   acceptedTags: z.array(z.string().optional()),
+});
+
+const endpointSpecificFiltersConfigSchema = z.object({
+  enabledFilters: z.array(string()),
+  filterAction: z.enum(["warn", "replace", "block"]),
+  logViolations: z.boolean(),
+  customMessage: z.string(),
+});
+
+export const FiltersConfigFileSchema = z.object({
+  grok: endpointSpecificFiltersConfigSchema,
 });
