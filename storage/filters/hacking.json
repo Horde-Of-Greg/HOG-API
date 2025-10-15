@@ -1,0 +1,52 @@
+{
+  "name": "Hacking & Cybercrime",
+  "description": "Filters content related to malware, hacking, and cyber attacks",
+  "patterns": [
+    {
+      "pattern": "\\b(create|make|build|develop)\\s+(malware|ransomware|virus|trojan|keylogger|botnet)\\b",
+      "severity": "high",
+      "description": "Creating malware"
+    },
+    {
+      "pattern": "\\b(ddos|dos)\\s+(attack|tool|script|service)\\b",
+      "severity": "high",
+      "description": "DDoS attacks"
+    },
+    {
+      "pattern": "\\b(steal|crack|bypass)\\s+(password|credential|login)\\b",
+      "severity": "high",
+      "description": "Credential theft"
+    },
+    {
+      "pattern": "\\b(exploit|vulnerability)\\s+(kit|framework|tutorial)\\b",
+      "severity": "high",
+      "description": "Exploit kits or tutorials"
+    },
+    {
+      "pattern": "\\bsql\\s*injection\\s+(tutorial|guide|attack)\\b",
+      "severity": "high",
+      "description": "SQL injection attacks"
+    },
+    {
+      "pattern": "\\b(bypass|defeat|circumvent)\\s+(encryption|security|authentication)\\b",
+      "severity": "high",
+      "description": "Bypassing security"
+    },
+    {
+      "pattern": "\\b(credit\\s*card|bank\\s*account)\\s+(hack|exploit|fraud)\\b",
+      "severity": "high",
+      "description": "Financial hacking"
+    },
+    {
+      "pattern": "\\b(zero\\s*day|0day)\\s+(exploit|vulnerability)\\s+(sell|buy|use)\\b",
+      "severity": "high",
+      "description": "Zero-day exploits"
+    },
+    {
+      "pattern": "\\b(phishing\\s+)?(kit|campaign|attack)\\s+(setup|create|launch)\\b",
+      "severity": "high",
+      "description": "Phishing campaigns"
+    }
+  ]
+}
+

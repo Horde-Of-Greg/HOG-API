@@ -14,8 +14,9 @@ export const globalRateLimits = async (
     res
       .status(429)
       .json({ error: "You're Being Rate Limited by the Global Rate Limit" });
+    return;
   }
-  getDbHandler().updateGlobalRates("take");
+  await getDbHandler().updateGlobalRates("take");
   next();
 };
 

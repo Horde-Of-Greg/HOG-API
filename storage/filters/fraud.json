@@ -1,0 +1,47 @@
+{
+  "name": "Fraud & Financial Crime",
+  "description": "Filters content related to fraud, money laundering, and financial crimes",
+  "patterns": [
+    {
+      "pattern": "\\b(counterfeit|fake)\\s+(money|currency|bills|documents|id)\\b",
+      "severity": "high",
+      "description": "Counterfeiting"
+    },
+    {
+      "pattern": "\\b(credit\\s*card|identity)\\s+(fraud|theft|cloning)\\b",
+      "severity": "high",
+      "description": "Credit card fraud or identity theft"
+    },
+    {
+      "pattern": "\\b(money\\s*laundering|wash\\s+money)\\s+(method|scheme|process)\\b",
+      "severity": "high",
+      "description": "Money laundering"
+    },
+    {
+      "pattern": "\\b(tax\\s+evasion|evade\\s+tax)\\s+(method|scheme|strategy)\\b",
+      "severity": "medium",
+      "description": "Tax evasion"
+    },
+    {
+      "pattern": "\\b(ponzi|pyramid)\\s+scheme\\s+(start|create|run)\\b",
+      "severity": "high",
+      "description": "Ponzi or pyramid schemes"
+    },
+    {
+      "pattern": "\\b(insurance|welfare)\\s+fraud\\s+(commit|scheme)\\b",
+      "severity": "high",
+      "description": "Insurance or welfare fraud"
+    },
+    {
+      "pattern": "\\b(skimming\\s+device|card\\s+skimmer)\\s+(make|build|install)\\b",
+      "severity": "high",
+      "description": "Card skimming devices"
+    },
+    {
+      "pattern": "\\b(fake\\s+id|forged\\s+document)\\s+(create|make|produce)\\b",
+      "severity": "high",
+      "description": "Forging documents"
+    }
+  ]
+}
+

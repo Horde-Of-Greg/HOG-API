@@ -48,11 +48,17 @@ export class DbHandler {
 
   async getUsername(discordId: string) {
     const userData = await this.getUserData(discordId);
+    if (!userData.username) {
+      throw new Error(`No username found for Discord ID: ${discordId}`);
+    }
     return userData.username;
   }
 
   async getUserRates(discordId: string) {
     const userData = await this.getUserData(discordId);
+    if (!userData.rates) {
+      throw new Error(`No rates found for Discord ID: ${discordId}`);
+    }
     return parseInt(userData.rates);
   }
 
@@ -103,7 +109,12 @@ export class DbHandler {
 
   async getUserData(discordId: string) {
     const exists = !!(await this.client.exists(discordId));
-    if (!exists) await this.createUser(discordId);
+    if (!exists) {
+      const created = await this.createUser(discordId);
+      if (!created) {
+        throw new Error(`Failed to create user for Discord ID: ${discordId}`);
+      }
+    }
     return await this.client.hGetAll(discordId);
   }
 }

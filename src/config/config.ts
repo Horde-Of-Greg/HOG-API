@@ -1,12 +1,17 @@
 import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
-import { Config, Env } from "./schema";
-import { validateConfigs, validateEnvs } from "./validate";
-import { RAW_CONFIG } from "../loaders/storage";
+import { Config, Env, FiltersConfig } from "./schema";
+import {
+  validateConfigs,
+  validateEnvs,
+  validateFiltersConfigs,
+} from "./validate";
+import { RAW_CONFIG, RAW_FILTERS_CONFIG } from "../loaders/storage";
 
-const configFile = RAW_CONFIG;
 dotenv.config();
 
 export const env: Env = validateEnvs();
-export const config: Config = validateConfigs(configFile);
+export const config: Config = validateConfigs(RAW_CONFIG);
+export const filtersConfig: FiltersConfig =
+  validateFiltersConfigs(RAW_FILTERS_CONFIG);
