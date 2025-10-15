@@ -5,7 +5,7 @@
   "maxPromptTokens": 64,
   "maxContextTokens": 128,
   "maxTotalTokens": 150,
-  "loggerName": "grok-server",
+  "loggerName": "HOG-API",
   "rateLimit": {
     "global": {
       "maxStored": 20,
@@ -16,9 +16,9 @@
       "maxStored": 5,
       "incrementInterval_s": 240,
       "incrementAmount": 1,
-      "whitelist": [
-        "476161490815287306"
-      ]
+      "whitelist": ["476161490815287306"]
     }
-  }
+  },
+  "skipLeveretAuth": true,
+  "acceptedTags": ["grok", "hogichan", "grok-test"]
 }

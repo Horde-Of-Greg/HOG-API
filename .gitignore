@@ -2,7 +2,7 @@
 
 node_modules/
 
-storage/config/config.json
+storage/config/*.json
 storage/db
 storage/logs
 
