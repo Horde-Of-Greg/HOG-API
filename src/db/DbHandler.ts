@@ -10,16 +10,15 @@ export class DbHandler {
 
   constructor() {
     this.client = getRedisClient().client;
-    this.init();
   }
 
   async init() {
-    this.createGlobalRates();
+    await this.createGlobalRates();
   }
 
   async createGlobalRates() {
     await this.client.set("GlobalRates", config.RATE_LIMIT.GLOBAL.MAX_STORED);
-    getLogger().simpleLog("info", "Global Rates Initialized");
+    getLogger().simpleLog("success", "Global Rates Initialized");
   }
 
   async createUser(discordId: string) {

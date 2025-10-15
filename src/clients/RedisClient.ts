@@ -9,7 +9,6 @@ export class RedisClient {
 
   constructor() {
     this.client = this.buildClient();
-    this.connect();
   }
 
   buildClient() {

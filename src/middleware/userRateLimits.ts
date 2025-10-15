@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getDbHandler } from "../db/DbHandler";
 import { getLogger } from "../utils/Logger";
+import { config } from "../config/config";
 
 export const userRateLimits = async (
   req: Request,
@@ -19,6 +20,7 @@ export const userRateLimits = async (
 };
 
 async function checkRateLimits(dcUserId: string) {
+  if (config.RATE_LIMIT.USER.WHITELIST.includes(dcUserId)) return true;
   const rates = await getDbHandler().getUserRates(dcUserId);
   return rates > 0;
 }

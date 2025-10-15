@@ -9,7 +9,6 @@ export class DiscordClient {
 
   constructor() {
     this.client = this.buildClient();
-    this.connect();
   }
 
   static gatewayIntents = [
