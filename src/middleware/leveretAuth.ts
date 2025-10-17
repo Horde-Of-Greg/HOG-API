@@ -12,7 +12,6 @@ export const leveretAuth = (
   const authResult = authRequest(req);
 
   if (!authResult) {
-    // TODO: Better logs
     getLogger().simpleLog("warn", "Unauthorized Request For Leveret");
     res.status(401).json({ error: "Unauthorized" });
     return;
@@ -67,9 +66,10 @@ function authRequest(req: any) {
   const url = `${req.protocol ?? "https"}://${host}${
     req.originalUrl ?? req.url ?? ""
   }`;
-  const bodyHash = createHash("sha256")
-    .update(req.rawBody ?? Buffer.alloc(0))
-    .digest("hex");
+
+  // Use raw body for signature verification
+  const rawBody = (req as any).rawBody ?? Buffer.alloc(0);
+  const bodyHash = createHash("sha256").update(rawBody).digest("hex");
   const canonical = [timestamp, requestId, method, url, bodyHash].join("\n");
 
   const signature = Buffer.from(signatureB64, "base64");

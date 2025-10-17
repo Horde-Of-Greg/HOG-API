@@ -7,6 +7,7 @@ import { zodValidator } from "../middleware/validator";
 import { GrokInputDataSchema } from "../types/grok";
 import { confirmation } from "../middleware/confirmation";
 import { tokenCheckerGrok } from "../middleware/tokenChecker";
+import { GrokClient } from "../clients/GrokClient";
 
 export function grokRoutes() {
   const router = Router();
