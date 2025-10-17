@@ -6,13 +6,19 @@ export const zodValidator = (schema: ZodObject<any>) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
-      getLogger().simpleLog("warn", `Zod data input validation failed`);
+      const errorDetails = parsed.error.issues.map((e: any) => ({
+        field: e.path.join("."),
+        message: e.message,
+      }));
+
+      getLogger().simpleLog(
+        "warn",
+        `Zod validation failed: ${JSON.stringify(errorDetails)}`
+      );
+
       res.status(400).json({
         error: "Validation Error",
-        details: parsed.error.issues.map((e: any) => ({
-          field: e.path.join("."),
-          message: e.message,
-        })),
+        details: errorDetails,
       });
       return;
     }
