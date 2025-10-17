@@ -35,10 +35,6 @@ function authRequest(req: any) {
   const tagName = headers[HEADERS.tag];
   const timestamp = headers[HEADERS.timestamp];
   const requestId = headers[HEADERS.requestId];
-  getLogger().simpleLog(
-    "debug",
-    `${signatureB64}, ${tagName}, ${timestamp}, ${requestId}`
-  );
 
   // Do less expensive checks first to save on potential compute
   if (!signatureB64 || !tagName) {
