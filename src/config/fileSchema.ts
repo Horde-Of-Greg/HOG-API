@@ -15,30 +15,34 @@ export const EnvFileSchema = z.object({
   REDIS_PORT: z.coerce.number().int().min(1).max(9999),
 });
 
-export const ConfigFileSchema = z.object({
-  port: z.number().int().min(1).max(9999),
-  grokTimeout_ms: z.number().int().min(1000),
-  grokModel: z.string(),
-  runningIp: z.ipv4(),
+const RateLimitConfigSchema = z.object({
+  maxStored: z.number().int().positive(),
+  incrementInterval_s: z.number().int().positive(),
+  incrementAmount: z.number().int().min(1),
+});
+
+const EndpointConfigSchema = z.object({
+  model: z.string(),
   maxPromptTokens: z.number().int().min(10).max(9999),
   maxContextTokens: z.number().int().max(9999),
   maxTotalTokens: z.number().int().min(10).max(19999),
-  loggerName: z.string(),
+  filters: z.string(), // Reference to filters config key
   rateLimit: z.object({
-    global: z.object({
-      maxStored: z.number().int().positive(),
-      incrementInterval_s: z.number().int().positive(),
-      incrementAmount: z.number().int().min(1),
-    }),
-    user: z.object({
-      maxStored: z.number().int().positive(),
-      incrementInterval_s: z.number().int().positive(),
-      incrementAmount: z.number().int().min(1),
+    global: RateLimitConfigSchema,
+    user: RateLimitConfigSchema.extend({
       whitelist: z.array(z.string().min(18).max(19).optional()),
     }),
   }),
+});
+
+export const ConfigFileSchema = z.object({
+  port: z.number().int().min(1).max(9999),
+  grokTimeout_ms: z.number().int().min(1000),
+  runningIp: z.ipv4(),
+  loggerName: z.string(),
   skipLeveretAuth: z.boolean(),
   acceptedTags: z.array(z.string().optional()),
+  endpoints: z.record(z.string(), EndpointConfigSchema),
 });
 
 const endpointSpecificFiltersConfigSchema = z.object({

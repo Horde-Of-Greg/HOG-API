@@ -13,6 +13,8 @@ export type GrokInputData = z.infer<typeof GrokInputDataSchema>;
 
 export type SystemPromptChoice = "default" | "hogichan" | "nomicord";
 
+export type ModelChoice = "grok-3-mini" | "grok-4-0709";
+
 const GrokTokenizeReqSchema = z.object({
   token_ids: z.array(
     z.object({

@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { getLogger } from "../utils/Logger";
 import { tokenizeGrok } from "../utils/grok";
-import { config } from "../config/config";
 import { findDcUsernameById } from "../utils/discordUtil";
 
 export const tokenCheckerGrok = async (
@@ -9,13 +8,20 @@ export const tokenCheckerGrok = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const endpointConfig = req.endpointConfig?.config;
+
+  if (!endpointConfig) {
+    res.status(500).json({ error: "Endpoint configuration not found" });
+    return;
+  }
+
   const tokenizedPrompt = await tokenizeGrok(
     req.body.prompt,
-    config.GROK_MODEL
+    endpointConfig.model
   );
   const tokenizedContext = await tokenizeGrok(
     req.body.context,
-    config.GROK_MODEL
+    endpointConfig.model
   );
 
   if (!tokenizedPrompt || !tokenizedContext) {
@@ -23,12 +29,12 @@ export const tokenCheckerGrok = async (
     return;
   }
 
-  if (tokenizedPrompt.tokenCount > config.MAX_PROMPT_TK) {
+  if (tokenizedPrompt.tokenCount > endpointConfig.maxPromptTokens) {
     res.status(403).json("Token count exceeds the maximum allowed limit");
     return;
   }
 
-  if (tokenizedContext.tokenCount > config.MAX_CONTEXT_TK) {
+  if (tokenizedContext.tokenCount > endpointConfig.maxContextTokens) {
     res.status(403).json("Context count exceeds the maximum allowed limit");
     return;
   }
@@ -37,7 +43,7 @@ export const tokenCheckerGrok = async (
     "info",
     `${await findDcUsernameById(req.body.userId)} passed a request for ${
       tokenizedPrompt.tokenCount + tokenizedContext.tokenCount
-    } tokens`
+    } tokens on ${endpointConfig.endpointName}`
   );
   next();
 };
