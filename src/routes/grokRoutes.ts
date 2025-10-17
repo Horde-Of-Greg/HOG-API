@@ -14,7 +14,6 @@ export function grokRoutes() {
   const controller = new GrokController();
 
   router.use(
-    leveretAuth,
     zodValidator(GrokInputDataSchema),
     globalRateLimits,
     userRateLimits,

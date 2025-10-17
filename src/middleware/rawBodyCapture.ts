@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import express from "express";
 
 declare global {
   namespace Express {
@@ -8,23 +8,8 @@ declare global {
   }
 }
 
-export const rawBodyCapture = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  let data = Buffer.from([]);
-
-  req.on("data", (chunk: Buffer) => {
-    data = Buffer.concat([data, chunk]);
-  });
-
-  req.on("end", () => {
-    req.rawBody = data;
-    next();
-  });
-
-  req.on("error", (err) => {
-    next(err);
-  });
-};
+export const jsonWithRawBody = express.json({
+  verify: (req: any, res, buf: Buffer) => {
+    req.rawBody = buf;
+  },
+});
