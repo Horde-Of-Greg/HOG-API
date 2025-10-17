@@ -66,10 +66,7 @@ function authRequest(req: any) {
   const url = `${req.protocol ?? "https"}://${host}${
     req.originalUrl ?? req.url ?? ""
   }`;
-
-  // Use raw body for signature verification
-  const rawBody = (req as any).rawBody ?? Buffer.alloc(0);
-  const bodyHash = createHash("sha256").update(rawBody).digest("hex");
+  const bodyHash = createHash("sha256").update(req.rawBody).digest("hex");
   const canonical = [timestamp, requestId, method, url, bodyHash].join("\n");
 
   const signature = Buffer.from(signatureB64, "base64");
