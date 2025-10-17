@@ -16,6 +16,7 @@ export class Logger {
     warn: "\x1b[33m", // Yellow
     error: "\x1b[31m", // Red
     debug: "\x1b[35m", // Magenta
+    format: "\x1b[37m", // White
     reset: "\x1b[0m",
   };
 
@@ -24,6 +25,21 @@ export class Logger {
     const date = `[${this.getDateTime()}]`;
     const whitespaces = " ".repeat("success".length - type.length);
     const content = message;
+    const color = Logger.colors[type];
+    const log = `${color}${name}${whitespaces}@${date}: ${content}${Logger.colors.reset}`;
+    console.log(log);
+  }
+
+  formattingLog(title: string) {
+    const type = "format";
+    const name = `[${this.name}:${type.toUpperCase()}]`;
+    const date = `[${this.getDateTime()}]`;
+    const whitespaces = " ".repeat("success".length - type.length);
+    const targetLength = 50;
+    const dashesNb = (targetLength - title.length) / 2;
+    const dashes = "-".repeat(dashesNb);
+    const extraDash = dashesNb % 1 != 0 ? "-" : "";
+    const content = `|${dashes} ${title} ${dashes}${extraDash}|`;
     const color = Logger.colors[type];
     const log = `${color}${name}${whitespaces}@${date}: ${content}${Logger.colors.reset}`;
     console.log(log);

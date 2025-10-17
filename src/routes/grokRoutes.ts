@@ -6,6 +6,7 @@ import { globalRateLimits } from "../middleware/globalRateLimits";
 import { zodValidator } from "../middleware/validator";
 import { GrokInputDataSchema } from "../types/grok";
 import { confirmation } from "../middleware/confirmation";
+import { tokenCheckerGrok } from "../middleware/tokenChecker";
 
 export function grokRoutes() {
   const router = Router();
@@ -16,6 +17,7 @@ export function grokRoutes() {
     zodValidator(GrokInputDataSchema),
     globalRateLimits,
     userRateLimits,
+    tokenCheckerGrok,
     confirmation
   );
 

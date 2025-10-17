@@ -1,6 +1,7 @@
 {
   "port": 3001,
   "grokTimeout_ms": 360000,
+  "grokModel": "grok-3-mini"
   "runningIp": "127.0.0.1",
   "maxPromptTokens": 64,
   "maxContextTokens": 128,

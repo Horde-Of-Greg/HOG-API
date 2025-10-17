@@ -18,6 +18,7 @@ export const EnvFileSchema = z.object({
 export const ConfigFileSchema = z.object({
   port: z.number().int().min(1).max(9999),
   grokTimeout_ms: z.number().int().min(1000),
+  grokModel: z.string(),
   runningIp: z.ipv4(),
   maxPromptTokens: z.number().int().min(10).max(9999),
   maxContextTokens: z.number().int().max(9999),

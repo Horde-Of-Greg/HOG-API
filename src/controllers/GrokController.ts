@@ -7,6 +7,7 @@ import {
 } from "../loaders/storage";
 import { GrokInputData, SystemPromptChoice } from "../types/grok";
 import { formatCompletion } from "../utils/formatter";
+import { getLogger } from "../utils/Logger";
 
 export class GrokController {
   constructor() {}
@@ -34,6 +35,7 @@ export class GrokController {
       try {
         if (!reqBody) throw new Error();
         const completion = await this.answerQuestionGeneric(reqBody, type);
+        getLogger().simpleLog("info", "Served Request");
         res.json({ completion: completion });
       } catch (err) {
         next(err);
