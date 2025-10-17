@@ -15,7 +15,7 @@ export const leveretAuth = (
     // TODO: Better logs
     getLogger().simpleLog("warn", "Unauthorized Request For Leveret");
     res.status(401).json({ error: "Unauthorized" });
-    next();
+    return;
   }
   next();
 };
