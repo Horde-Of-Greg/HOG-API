@@ -1,6 +1,6 @@
 {
   "name": "grok-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "just a simple express api for running grok on leveret",
   "main": "src/server.ts",
   "scripts": {
