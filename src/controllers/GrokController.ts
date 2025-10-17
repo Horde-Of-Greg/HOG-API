@@ -8,6 +8,8 @@ import {
 import { GrokInputData, SystemPromptChoice } from "../types/grok";
 import { formatCompletion } from "../utils/formatter";
 import { getLogger } from "../utils/Logger";
+import { startTimer, stopTimer } from "../utils/Timer";
+import { duration } from "zod/v4/classic/iso.cjs";
 
 export class GrokController {
   constructor() {}
@@ -34,9 +36,14 @@ export class GrokController {
 
       try {
         if (!reqBody) throw new Error();
+
+        startTimer("grok-req");
         const completion = await this.answerQuestionGeneric(reqBody, type);
-        getLogger().simpleLog("info", "Served Request");
-        res.json({ completion: completion });
+
+        const time_taken_ms = stopTimer("grok-req").getTime();
+        getLogger().simpleLog("info", `Served Request in ${time_taken_ms}ms`);
+
+        res.json({ completion: completion, duration: time_taken_ms });
       } catch (err) {
         next(err);
       }
