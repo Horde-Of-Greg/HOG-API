@@ -2,8 +2,9 @@ import { initApp } from "./app";
 import { getDiscordClient, initDiscordClient } from "./clients/DiscordClient";
 import { initGrokClient } from "./clients/GrokClient";
 import { getRedisClient, initRedisClient } from "./clients/RedisClient";
-import { config } from "./config/config";
+import { config, env } from "./config/config";
 import { getDbHandler, initDbHandler } from "./db/DbHandler";
+import { LEVERET_PUBLIC_KEY } from "./loaders/keys";
 import {
   startGlobalRateLimitIncrement,
   startUserRateLimitIncrements,
