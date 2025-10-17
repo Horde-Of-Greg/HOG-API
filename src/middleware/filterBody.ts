@@ -12,7 +12,16 @@ export const filterBody = async (
 ): Promise<void> => {
   const prompt = req.body.prompt;
   const context = req.body.context;
-  const username = await getDbHandler().getUsername(req.body.userId);
+  const endpointConfig = req.endpointConfig?.config;
+  const endpointName = endpointConfig?.endpointName;
+  if (!endpointName) {
+    res.status(500).json("no endpoint name, this shouldn't ever happen...");
+    return;
+  }
+  const username = await getDbHandler().getUsername(
+    req.body.userId,
+    endpointName
+  );
 
   switch (filtersConfig.grok.filterAction) {
     case "warn":
