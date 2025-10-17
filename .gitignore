@@ -7,3 +7,5 @@ storage/db
 storage/logs
 
 logs/
+
+ecosystem.config.js
