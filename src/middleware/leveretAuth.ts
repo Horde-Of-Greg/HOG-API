@@ -42,12 +42,27 @@ function authRequest(req: any) {
   );
 
   // Do less expensive checks first to save on potential compute
-  if (!signatureB64 || !tagName) return false;
-  if (!config.ACCEPTED_TAGS.includes(tagName)) return false;
+  if (!signatureB64 || !tagName) {
+    getLogger().simpleLog(
+      "warn",
+      "LEVE_AUTH: Could not find signatureB64 nor tagName"
+    );
+    return false;
+  }
+  if (!config.ACCEPTED_TAGS.includes(tagName)) {
+    getLogger().simpleLog(
+      "warn",
+      "LEVE_AUTH: Could not find tagName in the accepted tags"
+    );
+    return false;
+  }
 
   const method = String(req.method ?? "GET").toUpperCase();
   const host = req.get?.("host") ?? headers.host;
-  if (!host) return false;
+  if (!host) {
+    getLogger().simpleLog("warn", "LEVE_AUTH: Could not find host");
+    return false;
+  }
 
   const url = `${req.protocol ?? "https"}://${host}${
     req.originalUrl ?? req.url ?? ""
@@ -64,7 +79,10 @@ function authRequest(req: any) {
     LEVERET_PUBLIC_KEY,
     signature
   );
-  if (!valid) return false;
+  if (!valid) {
+    getLogger().simpleLog("warn", "LEVE_AUTH: Invalid signature");
+    return false;
+  }
 
   return true;
 }
