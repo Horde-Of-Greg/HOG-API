@@ -9,10 +9,14 @@ import {
   startUserRateLimitIncrements,
 } from "./services/rateLimits";
 import { getLogger, initLogger } from "./utils/Logger";
+import { startTimer, stopTimer } from "./utils/Timer";
 
 async function main() {
+  startTimer("main");
+
   initLogger();
 
+  getLogger().formattingLog("Clients Init");
   initRedisClient();
   await getRedisClient().connect();
 
@@ -21,18 +25,26 @@ async function main() {
   initDiscordClient();
   await getDiscordClient().connect();
 
+  getLogger().formattingLog("DB Init");
   initDbHandler();
   await getDbHandler().init();
 
   startGlobalRateLimitIncrement();
   await startUserRateLimitIncrements();
 
+  getLogger().formattingLog("App Init");
   const app = initApp();
 
   app.listen(config.PORT, config.RUNNING_IP, () => {
+    getLogger().formattingLog("Server Ready");
     getLogger().simpleLog(
-      "success",
+      "info",
       `Server is running at http://${config.RUNNING_IP}:${config.PORT}`
+    );
+    const main_timeTaken_ms = stopTimer("main").getTime();
+    getLogger().simpleLog(
+      "info",
+      `Server took ${main_timeTaken_ms}ms to start`
     );
   });
 }

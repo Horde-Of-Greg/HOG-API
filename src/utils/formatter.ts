@@ -3,6 +3,7 @@ import { GrokController } from "../controllers/GrokController";
 import { GrokInputData, SystemPromptChoice } from "../types/grok";
 import { findDcUsernameById } from "./discordUtil";
 import { getDbHandler } from "../db/DbHandler";
+import { config } from "../config/config";
 
 export function formatQuestion(
   discordUsername: string,
@@ -25,7 +26,7 @@ export async function formatCompletion(
   type: SystemPromptChoice
 ): Promise<ChatCompletionCreateParamsNonStreaming> {
   const completion: ChatCompletionCreateParamsNonStreaming = {
-    model: "grok-3-mini",
+    model: config.GROK_MODEL,
     messages: [
       {
         role: "system",

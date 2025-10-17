@@ -9,7 +9,6 @@ export function initApp() {
 
   app.use(routes());
 
-  // Error handler - must be last
   app.use(
     (
       err: Error,

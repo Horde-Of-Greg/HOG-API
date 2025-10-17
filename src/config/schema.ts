@@ -11,6 +11,7 @@ export const FilterConfigSchema = FiltersConfigFileSchema;
 export const ConfigSchema = ConfigFileSchema.transform((f) => ({
   PORT: f.port,
   GROK_TIMEOUT: f.grokTimeout_ms,
+  GROK_MODEL: f.grokModel,
   RUNNING_IP: f.runningIp,
   MAX_PROMPT_TK: f.maxPromptTokens,
   MAX_CONTEXT_TK: f.maxContextTokens,
