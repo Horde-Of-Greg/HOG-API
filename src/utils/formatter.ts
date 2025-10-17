@@ -3,7 +3,6 @@ import { GrokController } from "../controllers/GrokController";
 import { GrokInputData, SystemPromptChoice } from "../types/grok";
 import { findDcUsernameById } from "./discordUtil";
 import { getDbHandler } from "../db/DbHandler";
-import { config } from "../config/config";
 
 export function formatQuestion(
   discordUsername: string,
@@ -22,11 +21,13 @@ function filter(text: string, discordUsername: string) {
 }
 
 export async function formatCompletion(
-  req: GrokInputData,
-  type: SystemPromptChoice
+  reqBody: GrokInputData,
+  model: string,
+  type: SystemPromptChoice,
+  endpointName: string
 ): Promise<ChatCompletionCreateParamsNonStreaming> {
   const completion: ChatCompletionCreateParamsNonStreaming = {
-    model: config.GROK_MODEL,
+    model: model,
     messages: [
       {
         role: "system",
@@ -35,9 +36,9 @@ export async function formatCompletion(
       {
         role: "user",
         content: formatQuestion(
-          await getDbHandler().getUsername(req.userId),
-          req.prompt,
-          req.context
+          await getDbHandler().getUsername(reqBody.userId, endpointName),
+          reqBody.prompt,
+          reqBody.context
         ),
       },
     ],

@@ -9,7 +9,6 @@ import { GrokInputData, SystemPromptChoice } from "../types/grok";
 import { formatCompletion } from "../utils/formatter";
 import { getLogger } from "../utils/Logger";
 import { startTimer, stopTimer } from "../utils/Timer";
-import { duration } from "zod/v4/classic/iso.cjs";
 
 export class GrokController {
   constructor() {}
@@ -22,26 +21,49 @@ export class GrokController {
 
   async answerQuestionGeneric(
     reqBody: GrokInputData,
-    type: SystemPromptChoice
+    model: string,
+    type: SystemPromptChoice,
+    endpointName: string
   ) {
     return await getGrokClient().client.chat.completions.create(
-      await formatCompletion(reqBody, type)
+      await formatCompletion(reqBody, model, type, endpointName)
     );
   }
 
   handler =
-    (type: SystemPromptChoice): RequestHandler =>
+    (): RequestHandler =>
     async (req: Request, res: Response, next: NextFunction) => {
       const reqBody = req.body;
+      const endpointConfig = req.endpointConfig?.config;
+
+      if (!reqBody) {
+        next(new Error("Request body is missing"));
+        return;
+      }
+
+      if (!endpointConfig) {
+        next(new Error("Endpoint configuration is missing"));
+        return;
+      }
+
+      const model = endpointConfig.model;
+      const systemPrompt = endpointConfig.systemPrompt;
+      const endpointName = endpointConfig.endpointName;
 
       try {
-        if (!reqBody) throw new Error();
-
         startTimer("grok-req");
-        const completion = await this.answerQuestionGeneric(reqBody, type);
+        const completion = await this.answerQuestionGeneric(
+          reqBody,
+          model,
+          systemPrompt,
+          endpointName
+        );
 
         const time_taken_ms = stopTimer("grok-req").getTime();
-        getLogger().simpleLog("info", `Served Request in ${time_taken_ms}ms`);
+        getLogger().simpleLog(
+          "info",
+          `Served Request on ${endpointConfig.endpointName} in ${time_taken_ms}ms`
+        );
 
         res.json({ completion: completion, duration: time_taken_ms });
       } catch (err) {

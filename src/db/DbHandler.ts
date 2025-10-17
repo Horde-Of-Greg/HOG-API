@@ -13,15 +13,25 @@ export class DbHandler {
   }
 
   async init() {
-    await this.createGlobalRates();
+    await this.createGlobalRatesForAllEndpoints();
   }
 
-  async createGlobalRates() {
-    await this.client.set("GlobalRates", config.RATE_LIMIT.GLOBAL.MAX_STORED);
-    getLogger().simpleLog("success", "Global Rates Initialized");
+  async createGlobalRatesForAllEndpoints() {
+    for (const [endpointName, endpointConfig] of Object.entries(
+      config.ENDPOINTS
+    )) {
+      await this.client.set(
+        `${endpointName}:GlobalRates`,
+        endpointConfig.RATE_LIMIT.GLOBAL.MAX_STORED
+      );
+      getLogger().simpleLog(
+        "success",
+        `Global Rates Initialized for ${endpointName}`
+      );
+    }
   }
 
-  async createUser(discordId: string) {
+  async createUser(discordId: string, endpointName: string, maxStored: number) {
     const username = await findDcUsernameById(discordId);
     if (!username) {
       getLogger().simpleLog(
@@ -30,42 +40,47 @@ export class DbHandler {
       );
       return false;
     }
-    await this.client.hSet(discordId, {
+    await this.client.hSet(`${endpointName}:user:${discordId}`, {
       username: username,
-      rates: config.RATE_LIMIT.USER.MAX_STORED,
+      rates: maxStored,
     });
     return true;
   }
 
-  async getGlobalRates() {
-    const rates = await this.client.get("GlobalRates");
+  async getGlobalRates(endpointName: string) {
+    const rates = await this.client.get(`${endpointName}:GlobalRates`);
     if (!rates) {
-      getLogger().simpleLog("warn", "Error Fetching Global Rates");
+      getLogger().simpleLog(
+        "warn",
+        `Error Fetching Global Rates for ${endpointName}`
+      );
       return null;
     }
     return parseInt(rates);
   }
 
-  async getUsername(discordId: string) {
-    const userData = await this.getUserData(discordId);
+  async getUsername(discordId: string, endpointName: string) {
+    const userData = await this.getUserData(discordId, endpointName);
     if (!userData.username) {
       throw new Error(`No username found for Discord ID: ${discordId}`);
     }
     return userData.username;
   }
 
-  async getUserRates(discordId: string) {
-    const userData = await this.getUserData(discordId);
+  async getUserRates(discordId: string, endpointName: string) {
+    const userData = await this.getUserData(discordId, endpointName);
     if (!userData.rates) {
-      throw new Error(`No rates found for Discord ID: ${discordId}`);
+      throw new Error(
+        `No rates found for Discord ID: ${discordId} on ${endpointName}`
+      );
     }
     return parseInt(userData.rates);
   }
 
-  async updateGlobalRates(type: "give" | "take") {
-    const rates = await this.getGlobalRates();
-    if (!rates) return;
-    const globalConfig = config.RATE_LIMIT.GLOBAL;
+  async updateGlobalRates(endpointName: string, type: "give" | "take") {
+    const rates = await this.getGlobalRates(endpointName);
+    if (rates === null) return;
+    const globalConfig = config.ENDPOINTS[endpointName].RATE_LIMIT.GLOBAL;
     let newRates: number;
     let tmpRates: number;
 
@@ -83,12 +98,16 @@ export class DbHandler {
         break;
     }
 
-    await this.client.set("GlobalRates", newRates);
+    await this.client.set(`${endpointName}:GlobalRates`, newRates);
   }
 
-  async updateUserRates(discordId: string, type: "give" | "take") {
-    const rates = await this.getUserRates(discordId);
-    const userConfig = config.RATE_LIMIT.USER;
+  async updateUserRates(
+    discordId: string,
+    endpointName: string,
+    type: "give" | "take"
+  ) {
+    const rates = await this.getUserRates(discordId, endpointName);
+    const userConfig = config.ENDPOINTS[endpointName].RATE_LIMIT.USER;
     let newRates: number;
     let tmpRates: number;
 
@@ -104,18 +123,32 @@ export class DbHandler {
         break;
     }
 
-    await this.client.hSet(discordId, "rates", newRates);
+    await this.client.hSet(
+      `${endpointName}:user:${discordId}`,
+      "rates",
+      newRates
+    );
   }
 
-  async getUserData(discordId: string) {
-    const exists = !!(await this.client.exists(discordId));
+  async getUserData(discordId: string, endpointName: string) {
+    const key = `${endpointName}:user:${discordId}`;
+    const exists = !!(await this.client.exists(key));
     if (!exists) {
-      const created = await this.createUser(discordId);
+      const maxStored =
+        config.ENDPOINTS[endpointName].RATE_LIMIT.USER.MAX_STORED;
+      const created = await this.createUser(discordId, endpointName, maxStored);
       if (!created) {
-        throw new Error(`Failed to create user for Discord ID: ${discordId}`);
+        throw new Error(
+          `Failed to create user for Discord ID: ${discordId} on ${endpointName}`
+        );
       }
     }
-    return await this.client.hGetAll(discordId);
+    return await this.client.hGetAll(key);
+  }
+
+  async getAllUserKeysForEndpoint(endpointName: string) {
+    const pattern = `${endpointName}:user:*`;
+    return await this.client.keys(pattern);
   }
 }
 

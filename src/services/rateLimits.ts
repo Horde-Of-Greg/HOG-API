@@ -3,69 +3,101 @@ import { getDbHandler } from "../db/DbHandler";
 import { getRedisClient } from "../clients/RedisClient";
 import { getLogger } from "../utils/Logger";
 
-let globalRateLimitInterval: NodeJS.Timeout | null = null;
-let userRateLimitInterval: NodeJS.Timeout | null = null;
+const rateLimitIntervals: Map<string, NodeJS.Timeout> = new Map();
 
 export function startGlobalRateLimitIncrement() {
-  if (globalRateLimitInterval) return;
+  for (const [endpointName, endpointConfig] of Object.entries(
+    config.ENDPOINTS
+  )) {
+    if (rateLimitIntervals.has(`${endpointName}:global`)) continue;
 
-  const intervalMs = config.RATE_LIMIT.GLOBAL.INTERVAL * 1000;
+    const intervalMs = endpointConfig.RATE_LIMIT.GLOBAL.INTERVAL * 1000;
 
-  globalRateLimitInterval = setInterval(async () => {
-    try {
-      await getDbHandler().updateGlobalRates("give");
-    } catch (err) {
-      getLogger().simpleLog(
-        "error",
-        `Failed to increment global rates: ${err}`
-      );
-    }
-  }, intervalMs);
+    const interval = setInterval(async () => {
+      try {
+        await getDbHandler().updateGlobalRates(endpointName, "give");
+      } catch (err) {
+        getLogger().simpleLog(
+          "error",
+          `Failed to increment global rates for ${endpointName}: ${err}`
+        );
+      }
+    }, intervalMs);
 
-  getLogger().simpleLog(
-    "success",
-    `Global rate limit increment started (every ${config.RATE_LIMIT.GLOBAL.INTERVAL}s)`
-  );
+    rateLimitIntervals.set(`${endpointName}:global`, interval);
+
+    getLogger().simpleLog(
+      "success",
+      `Global rate limit increment started for ${endpointName} (every ${endpointConfig.RATE_LIMIT.GLOBAL.INTERVAL}s)`
+    );
+  }
 }
 
 export async function startUserRateLimitIncrements() {
-  if (userRateLimitInterval) return;
+  for (const [endpointName, endpointConfig] of Object.entries(
+    config.ENDPOINTS
+  )) {
+    if (rateLimitIntervals.has(`${endpointName}:user`)) continue;
 
-  const intervalMs = config.RATE_LIMIT.USER.INTERVAL * 1000;
+    const intervalMs = endpointConfig.RATE_LIMIT.USER.INTERVAL * 1000;
 
-  userRateLimitInterval = setInterval(async () => {
-    try {
-      const keys = await getRedisClient().client.keys("*");
-      const userIds = keys.filter((key) => key !== "GlobalRates");
+    const interval = setInterval(async () => {
+      try {
+        const keys = await getDbHandler().getAllUserKeysForEndpoint(
+          endpointName
+        );
 
-      for (const userId of userIds) {
-        if (config.RATE_LIMIT.USER.WHITELIST.includes(userId)) continue;
+        for (const key of keys) {
+          // Extract userId from key: "endpointName:user:userId"
+          const userId = key.split(":")[2];
+          if (!userId) continue;
 
-        await getDbHandler().updateUserRates(userId, "give");
+          if (endpointConfig.RATE_LIMIT.USER.WHITELIST.includes(userId))
+            continue;
+
+          await getDbHandler().updateUserRates(userId, endpointName, "give");
+        }
+      } catch (err) {
+        getLogger().simpleLog(
+          "error",
+          `Failed to increment user rates for ${endpointName}: ${err}`
+        );
       }
-    } catch (err) {
-      getLogger().simpleLog("error", `Failed to increment user rates: ${err}`);
-    }
-  }, intervalMs);
+    }, intervalMs);
 
-  getLogger().simpleLog(
-    "success",
-    `User rate limit increment started (every ${config.RATE_LIMIT.USER.INTERVAL}s)`
-  );
+    rateLimitIntervals.set(`${endpointName}:user`, interval);
+
+    getLogger().simpleLog(
+      "success",
+      `User rate limit increment started for ${endpointName} (every ${endpointConfig.RATE_LIMIT.USER.INTERVAL}s)`
+    );
+  }
 }
 
 export function stopGlobalRateLimitIncrement() {
-  if (globalRateLimitInterval) {
-    clearInterval(globalRateLimitInterval);
-    globalRateLimitInterval = null;
-    getLogger().simpleLog("info", "Global rate limit increment stopped");
+  for (const [key, interval] of rateLimitIntervals.entries()) {
+    if (key.endsWith(":global")) {
+      clearInterval(interval);
+      rateLimitIntervals.delete(key);
+      const endpointName = key.replace(":global", "");
+      getLogger().simpleLog(
+        "info",
+        `Global rate limit increment stopped for ${endpointName}`
+      );
+    }
   }
 }
 
 export function stopUserRateLimitIncrements() {
-  if (userRateLimitInterval) {
-    clearInterval(userRateLimitInterval);
-    userRateLimitInterval = null;
-    getLogger().simpleLog("info", "User rate limit increments stopped");
+  for (const [key, interval] of rateLimitIntervals.entries()) {
+    if (key.endsWith(":user")) {
+      clearInterval(interval);
+      rateLimitIntervals.delete(key);
+      const endpointName = key.replace(":user", "");
+      getLogger().simpleLog(
+        "info",
+        `User rate limit increments stopped for ${endpointName}`
+      );
+    }
   }
 }
