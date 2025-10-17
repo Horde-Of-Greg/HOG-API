@@ -9,3 +9,5 @@ storage/logs
 logs/
 
 ecosystem.config.js
+
+dist/
