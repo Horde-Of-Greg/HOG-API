@@ -33,7 +33,7 @@ function authRequest(req: any) {
   // Mostly from https://gist.github.com/NotMyWing/632d738644c17aa71931169af5cb2767
   const headers = req.headers ?? {};
   const signatureB64 = headers[HEADERS.signature];
-  const tagName = headers.get[HEADERS.tag];
+  const tagName = headers[HEADERS.tag];
   const timestamp = headers[HEADERS.timestamp];
   const requestId = headers[HEADERS.requestId];
 
