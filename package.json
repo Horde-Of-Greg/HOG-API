@@ -2,7 +2,7 @@
   "name": "grok-server",
   "version": "0.1.0",
   "description": "just a simple express api for running grok on leveret",
-  "main": "src/index.ts",
+  "main": "src/server.ts",
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/server.ts"
@@ -18,11 +18,9 @@
   },
   "homepage": "https://github.com/D-Alessian/grok-server#readme",
   "dependencies": {
-    "crypto": "^1.0.1",
     "discord.js": "^14.23.2",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "express-validator": "^7.2.1",
     "fs": "^0.0.1-security",
     "openai": "^6.3.0",
     "redis": "^5.8.3",
