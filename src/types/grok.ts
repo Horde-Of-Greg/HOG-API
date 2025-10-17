@@ -1,4 +1,12 @@
 import { z } from "zod";
+import { getLogger } from "../utils/Logger";
+
+// Helper to transform string "null" to actual null
+const nullableStringTransform = (schema: z.ZodString) =>
+  z.preprocess(
+    (val) => (val === "null" || val === "" ? null : val),
+    schema.nullable()
+  );
 
 export const GrokInputDataSchema = z.object({
   userId: z.string().min(1, "userId cannot be empty"),
@@ -7,7 +15,9 @@ export const GrokInputDataSchema = z.object({
     .min(1, "prompt cannot be empty")
     .max(10000, "prompt too long"),
   context: z.string().max(5000, "context too long"),
-  attachement: z.url("attachement must be a valid URL").nullable(),
+  attachement: nullableStringTransform(
+    z.string().url("attachement must be a valid URL")
+  ),
 });
 export type GrokInputData = z.infer<typeof GrokInputDataSchema>;
 

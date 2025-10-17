@@ -11,6 +11,8 @@ export const zodValidator = (schema: ZodObject<any>) => {
         message: e.message,
       }));
 
+      getLogger().simpleLog("debug", JSON.stringify(req.body));
+
       getLogger().simpleLog(
         "warn",
         `Zod validation failed: ${JSON.stringify(errorDetails)}`
