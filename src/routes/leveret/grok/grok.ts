@@ -8,6 +8,7 @@ import { confirmation } from "../../../middleware/confirmation";
 import { tokenCheckerGrok } from "../../../middleware/tokenChecker";
 import { setEndpointData } from "../../../middleware/setEndpointData";
 import { endpointData } from "../../../middleware/endpointData";
+import { filterBody } from "../../../middleware/filterBody";
 
 export function grokRoutes() {
   const router = Router();
@@ -20,6 +21,7 @@ export function grokRoutes() {
     zodValidator(GrokInputDataSchema),
     globalRateLimits,
     userRateLimits,
+    filterBody,
     tokenCheckerGrok,
     confirmation,
     controller.handler()
@@ -31,6 +33,7 @@ export function grokRoutes() {
     zodValidator(GrokInputDataSchema),
     globalRateLimits,
     userRateLimits,
+    filterBody,
     tokenCheckerGrok,
     confirmation,
     controller.handler()
@@ -41,7 +44,7 @@ export function grokRoutes() {
     endpointData,
     zodValidator(GrokInputDataSchema),
     globalRateLimits,
-    userRateLimits,
+    filterBody,
     tokenCheckerGrok,
     confirmation,
     controller.handler()

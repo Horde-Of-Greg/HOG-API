@@ -13,7 +13,7 @@ FILTERS_FILES.forEach((value, key) => {
 
   object.patterns.forEach((element: PatternConfig) => {
     const filter: Filter = {
-      pattern: new RegExp(element.pattern, "gi"),
+      pattern: new RegExp(`${element.pattern}`, "gi"),
       severity: element.severity,
       description: element.description,
     };

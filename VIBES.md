@@ -4,12 +4,6 @@ A document for transparency about which parts of the code are made using AI. Imp
 
 # List
 
-### `src/middleware/validateRequest.ts`
-
-- What is vibe coded: l17-l59
-- Reasons: very simple logic, but repetitive. Could be improved with recursion.
-- Author: D-Alessian
-
 ### `storage/filters/*`
 
 - What is vibe coded: All the filter JSONs, except exploits.json
