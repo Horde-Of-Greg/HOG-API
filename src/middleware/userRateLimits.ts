@@ -34,11 +34,6 @@ export const userRateLimits = async (
     return;
   }
 
-  await getDbHandler().updateUserRates(
-    userId,
-    endpointConfig.endpointName,
-    "take"
-  );
   next();
 };
 

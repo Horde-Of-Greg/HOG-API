@@ -4,7 +4,7 @@ import { userRateLimits } from "../../../middleware/userRateLimits";
 import { globalRateLimits } from "../../../middleware/globalRateLimits";
 import { zodValidator } from "../../../middleware/validator";
 import { GrokInputDataSchema } from "../../../types/grok";
-import { confirmation } from "../../../middleware/confirmation";
+import { cleanup } from "../../../middleware/cleanup";
 import { tokenCheckerGrok } from "../../../middleware/tokenChecker";
 import { setEndpointData } from "../../../middleware/setEndpointData";
 import { endpointData } from "../../../middleware/endpointData";
@@ -23,7 +23,7 @@ export function grokRoutes() {
     userRateLimits,
     filterBody,
     tokenCheckerGrok,
-    confirmation,
+    cleanup,
     controller.handler()
   );
   router.post(
@@ -35,7 +35,7 @@ export function grokRoutes() {
     userRateLimits,
     filterBody,
     tokenCheckerGrok,
-    confirmation,
+    cleanup,
     controller.handler()
   );
   router.post(
@@ -46,7 +46,7 @@ export function grokRoutes() {
     globalRateLimits,
     filterBody,
     tokenCheckerGrok,
-    confirmation,
+    cleanup,
     controller.handler()
   );
 
