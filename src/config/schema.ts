@@ -13,6 +13,7 @@ export const ConfigSchema = ConfigFileSchema.transform((f) => ({
   GROK_TIMEOUT: f.grokTimeout_ms,
   RUNNING_IP: f.runningIp,
   LOGGER_NAME: f.loggerName,
+  DISCORD_SERVER_NAME: f.discordServerName,
   SKIP_LEVERET_AUTH: f.skipLeveretAuth,
   ACCEPTED_TAGS: f.acceptedTags,
   ENDPOINTS: Object.fromEntries(

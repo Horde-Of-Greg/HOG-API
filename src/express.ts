@@ -2,7 +2,7 @@ import express from "express";
 import { getLogger } from "./utils/Logger";
 import { routes } from "./routes";
 
-export function initApp() {
+export function initExpress() {
   const app = express();
 
   app.use(routes());

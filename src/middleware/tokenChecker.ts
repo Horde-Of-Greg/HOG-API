@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getLogger } from "../utils/Logger";
-import { tokenizeGrok } from "../utils/grok";
-import { findDcUsernameById } from "../utils/discordUtil";
+import { tokenizeGrok } from "../utils/grok/grok";
+import { findDcUsernameById } from "../utils/bot/usernames";
 
 export const tokenCheckerGrok = async (
   req: Request,

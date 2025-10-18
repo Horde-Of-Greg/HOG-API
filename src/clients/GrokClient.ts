@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { config, env } from "../config/config";
+import { getLogger } from "../utils/Logger";
 
 let grokClient: GrokClient | null = null;
 
@@ -11,6 +12,7 @@ export class GrokClient {
   }
 
   buildClient() {
+    getLogger().simpleLog("success", "Building Grok Client");
     return new OpenAI({
       apiKey: env.GROK_API_KEY,
       baseURL: "https://api.x.ai/v1",

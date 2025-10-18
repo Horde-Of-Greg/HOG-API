@@ -13,6 +13,7 @@ export const EnvFileSchema = z.object({
     .min(8, "Password is too short. Change your DB's password."),
   REDIS_HOST: z.string(),
   REDIS_PORT: z.coerce.number().int().min(1).max(9999),
+  SERVER_ID: z.string(),
 });
 
 const RateLimitConfigSchema = z.object({
@@ -40,6 +41,7 @@ export const ConfigFileSchema = z.object({
   grokTimeout_ms: z.number().int().min(1000),
   runningIp: z.ipv4(),
   loggerName: z.string(),
+  discordServerName: z.string(),
   skipLeveretAuth: z.boolean(),
   acceptedTags: z.array(z.string().optional()),
   endpoints: z.record(z.string(), EndpointConfigSchema),

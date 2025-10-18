@@ -1,8 +1,8 @@
 import { ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat/completions";
-import { GrokController } from "../controllers/GrokController";
-import { GrokInputData, SystemPromptChoice } from "../types/grok";
-import { findDcUsernameById } from "./discordUtil";
-import { getDbHandler } from "../db/DbHandler";
+import { GrokController } from "../../controllers/GrokController";
+import { GrokInputData, SystemPromptChoice } from "../../types/grok";
+import { findDcUsernameById } from "../bot/usernames";
+import { getDbHandler } from "../../db/DbHandler";
 
 export function formatQuestion(
   discordUsername: string,
