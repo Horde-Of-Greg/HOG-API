@@ -27,14 +27,15 @@ export class MembersController {
 
   async getUsernamesAndIds() {
     const idsList = await this.dbHandler.getHogMembers();
-    const idsToUsernames = new Map<string, string>();
+    const idsToUsernames: Record<string, string> = {};
+
     await Promise.all(
       idsList.map(async (element) => {
         const username = await findDcUsernameById(element);
         if (username) {
-          idsToUsernames.set(element, username);
+          idsToUsernames[element] = username;
         } else {
-          idsToUsernames.set(element, "unknown");
+          idsToUsernames[element] = "unknown";
         }
       })
     );
