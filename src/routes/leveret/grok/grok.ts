@@ -1,15 +1,13 @@
 import { Router } from "express";
-import { GrokController } from "../controllers/GrokController";
-import { leveretAuth } from "../middleware/leveretAuth";
-import { userRateLimits } from "../middleware/userRateLimits";
-import { globalRateLimits } from "../middleware/globalRateLimits";
-import { zodValidator } from "../middleware/validator";
-import { GrokInputDataSchema } from "../types/grok";
-import { confirmation } from "../middleware/confirmation";
-import { tokenCheckerGrok } from "../middleware/tokenChecker";
-import { GrokClient } from "../clients/GrokClient";
-import { setEndpointData } from "../middleware/setEndpointData";
-import { endpointData } from "../middleware/endpointData";
+import { GrokController } from "../../../controllers/GrokController";
+import { userRateLimits } from "../../../middleware/userRateLimits";
+import { globalRateLimits } from "../../../middleware/globalRateLimits";
+import { zodValidator } from "../../../middleware/validator";
+import { GrokInputDataSchema } from "../../../types/grok";
+import { confirmation } from "../../../middleware/confirmation";
+import { tokenCheckerGrok } from "../../../middleware/tokenChecker";
+import { setEndpointData } from "../../../middleware/setEndpointData";
+import { endpointData } from "../../../middleware/endpointData";
 
 export function grokRoutes() {
   const router = Router();

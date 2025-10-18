@@ -1,4 +1,4 @@
-import { initApp } from "./app";
+import { initExpress } from "./express";
 import { getDiscordClient, initDiscordClient } from "./clients/DiscordClient";
 import { initGrokClient } from "./clients/GrokClient";
 import { getRedisClient, initRedisClient } from "./clients/RedisClient";
@@ -11,6 +11,7 @@ import {
 } from "./services/rateLimits";
 import { getLogger, initLogger } from "./utils/Logger";
 import { startTimer, stopTimer } from "./utils/Timer";
+import { initDiscord } from "./discord";
 
 async function main() {
   startTimer("main");
@@ -20,23 +21,23 @@ async function main() {
   getLogger().formattingLog("Clients Init");
   initRedisClient();
   await getRedisClient().connect();
-
   initGrokClient();
-
-  initDiscordClient();
-  await getDiscordClient().connect();
 
   getLogger().formattingLog("DB Init");
   initDbHandler();
   await getDbHandler().init();
 
+  getLogger().formattingLog("Discord Bot Init");
+  await initDiscord();
+
+  getLogger().formattingLog("Services Init");
   startGlobalRateLimitIncrement();
   await startUserRateLimitIncrements();
 
   getLogger().formattingLog("App Init");
-  const app = initApp();
+  const expressApp = initExpress();
 
-  app.listen(config.PORT, config.RUNNING_IP, () => {
+  expressApp.listen(config.PORT, config.RUNNING_IP, () => {
     getLogger().formattingLog("Server Ready");
     getLogger().simpleLog(
       "info",

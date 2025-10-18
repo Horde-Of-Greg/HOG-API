@@ -6,7 +6,7 @@ import {
   NOMICORD_PROMPT,
 } from "../loaders/storage";
 import { GrokInputData, SystemPromptChoice } from "../types/grok";
-import { formatCompletion } from "../utils/formatter";
+import { formatCompletion } from "../utils/grok/formatter";
 import { getLogger } from "../utils/Logger";
 import { startTimer, stopTimer } from "../utils/Timer";
 

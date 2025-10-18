@@ -1,6 +1,6 @@
 import { getRedisClient } from "../clients/RedisClient";
 import { config } from "../config/config";
-import { findDcUsernameById } from "../utils/discordUtil";
+import { findDcUsernameById } from "../utils/bot/usernames";
 import { getLogger } from "../utils/Logger";
 
 let dbHandler: DbHandler | null = null;
@@ -26,7 +26,7 @@ export class DbHandler {
       );
       getLogger().simpleLog(
         "success",
-        `Global Rates Initialized for ${endpointName}`
+        `Global Rates Created for ${endpointName}`
       );
     }
   }
@@ -149,6 +149,22 @@ export class DbHandler {
   async getAllUserKeysForEndpoint(endpointName: string) {
     const pattern = `${endpointName}:user:*`;
     return await this.client.keys(pattern);
+  }
+
+  async createHog(discordIds: string[]) {
+    await this.client.sAdd("members", discordIds);
+  }
+
+  async getHogMembers() {
+    return await this.client.sMembers("members");
+  }
+
+  async addToHog(discordId: string) {
+    await this.client.sAdd("members", discordId);
+  }
+
+  async removeFromHog(discordId: string) {
+    await this.client.sRem("members", discordId);
   }
 }
 

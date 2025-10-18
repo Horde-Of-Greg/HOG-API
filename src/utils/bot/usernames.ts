@@ -1,5 +1,5 @@
 import { User } from "discord.js";
-import { getDiscordClient } from "../clients/DiscordClient";
+import { getDiscordClient } from "../../clients/DiscordClient";
 import { string } from "zod";
 
 export async function findDcIdByUsername(
