@@ -6,6 +6,7 @@ import { jsonWithRawBody } from "../middleware/jsonWithRawBody";
 import { initEndpointHandler } from "../utils/Endpoint";
 import { setEndpointData } from "../middleware/setEndpointData";
 import { dataRoutes } from "./data/data";
+import { utilRoutes } from "./util/util";
 
 export function routes() {
   const router = Router();
@@ -18,5 +19,12 @@ export function routes() {
   );
 
   router.use("/data", setEndpointData("source", "data"), dataRoutes());
+
+  router.use(
+    "/util",
+    jsonWithRawBody(),
+    setEndpointData("source", "util"),
+    utilRoutes()
+  );
   return router;
 }
