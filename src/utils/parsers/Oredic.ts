@@ -3,7 +3,7 @@
  * https://github.com/AE2-UEL/Applied-Energistics-2/blob/26bb5986c636e9bdde62559b0d1c2bbc48c4b9e3/src/main/java/appeng/util/item/OreDictFilterMatcher.java#L11
  */
 
-import { getLogger } from "../Logger";
+import { MiscError } from "../../types/server";
 
 type Ast = AstNode | null;
 
@@ -27,49 +27,57 @@ type LexemeElement = {
   content: LexemeElement[] | string | null;
 };
 
+type ParseState = {
+  ast: Ast;
+  tokenBuffer: Token[];
+  operandBuffer: AstNode[];
+  currentOperator: "AND" | "XOR" | "OR" | null;
+  negationFlag: boolean;
+};
+
 export class Ae2uelOredicParser {
   lexemeBuffer: string;
 
   parenthesesCount: number;
 
-  pos: 0;
-
-  negationFlag: boolean;
-  currentOperator: "AND" | "XOR" | "OR" | null;
+  error: MiscError;
 
   constructor(private oredicString: string) {
     this.lexemeBuffer = "";
 
     this.parenthesesCount = 0;
 
-    this.pos = 0;
-
-    this.negationFlag = false;
-    this.currentOperator = null;
+    this.error = {
+      code: null,
+      status: false,
+      send: false,
+      message: null,
+      location: __dirname,
+      time: null,
+    };
   }
 
-  parse() {
-    getLogger().simpleLog("debug", `parsing: ${this.oredicString}`);
+  parse(): Ast | MiscError {
+    const { lexemeList } = this.lexicalParse(this.oredicString.split(""));
 
-    const lexemeList = this.lexicalParse(this.oredicString.split(""));
     if (this.parenthesesCount !== 0) {
-      // Handle Error. Parantheses should be balanced
+      this.setError(400, "Unbalanced parentheses");
+      return this.error;
     }
 
     const ast = this.parseNode(lexemeList);
-    getLogger().simpleLog(
-      "debug",
-      `Ast Parse: ${JSON.stringify(ast, undefined, 4)}`
-    );
+
+    if (this.error.status) {
+      return this.error;
+    }
+
     return ast;
   }
 
-  /*
-   * This function iterates over the input once and makes an ordered list of lexeme
-   * elements. This groups every kind of node together in only one element, making the
-   * further parsing easier.
-   */
-  private lexicalParse(pattern: string[]) {
+  private lexicalParse(pattern: string[]): {
+    lexemeList: LexemeElement[];
+    consumed: number;
+  } {
     let lexemeList: LexemeElement[] = [];
 
     for (let i = 0; i < pattern.length; i++) {
@@ -81,16 +89,16 @@ export class Ae2uelOredicParser {
           lexemeList = this.flushLexemeBuffer(lexemeList);
           this.updateParCount("START");
 
-          const subList = this.lexicalParse(pattern.slice(i + 1));
-          lexemeList.push({ type: "group", content: subList });
+          const result = this.lexicalParse(pattern.slice(i + 1));
+          lexemeList.push({ type: "group", content: result.lexemeList });
 
-          i = this.pos + 1;
+          i += result.consumed;
 
           break;
         case ")":
-          this.flushLexemeBuffer(lexemeList);
+          lexemeList = this.flushLexemeBuffer(lexemeList);
           this.updateParCount("END");
-          return lexemeList;
+          return { lexemeList, consumed: i + 1 };
 
         case "&":
           lexemeList = this.flushLexemeBuffer(lexemeList);
@@ -119,96 +127,100 @@ export class Ae2uelOredicParser {
           this.lexemeBuffer += pattern[i];
           break;
       }
-      this.pos += 1;
     }
 
     this.flushLexemeBuffer(lexemeList);
-    return lexemeList;
+    return { lexemeList, consumed: pattern.length };
   }
 
-  /*
-   * This is the function that actually parses the Lexeme List for the logic.
-   */
   private parseNode(lexemeList: LexemeElement[]): Ast {
-    let ast: Ast = null;
-    let tokenBuffer: Token[] = [];
-    let operandBuffer: Array<AstNode> = [];
+    if (this.error.status) {
+      return null;
+    }
+
+    const state: ParseState = {
+      ast: null,
+      tokenBuffer: [],
+      operandBuffer: [],
+      currentOperator: null,
+      negationFlag: false,
+    };
 
     for (let i = 0; i < lexemeList.length; i++) {
       switch (lexemeList[i].type) {
         case "group":
           const subLexeme = lexemeList[i].content;
           if (typeof subLexeme === "string" || !subLexeme) {
-            // Handle Error. Isn't an array.
+            this.setError(400, "Invalid group content");
             return null;
           }
           const subAst: Ast = this.parseNode(subLexeme);
 
-          if (!subAst) {
-            // Handle Error. Empty sub Ast
+          if (this.error.status) {
             return null;
           }
 
-          if (!ast) {
-            ast = subAst;
-          } else {
-            operandBuffer.push(subAst);
+          if (!subAst) {
+            this.setError(400, "Failed to parse group");
+            return null;
           }
 
+          if (state.negationFlag) {
+            subAst.negation = true;
+            state.negationFlag = false;
+          }
+
+          if (!state.ast) {
+            state.ast = subAst;
+            break;
+          }
+
+          state.operandBuffer.push(subAst);
           break;
 
         case "operator":
           const operator = lexemeList[i].content;
           if (operator !== "AND" && operator !== "OR" && operator !== "XOR") {
-            // Handle Error. No valid operator
+            this.setError(400, "Invalid operator");
             return null;
           }
 
-          if (tokenBuffer.length > 0) {
-            operandBuffer.push(
-              this.createPatternNode(tokenBuffer, this.negationFlag)
-            );
-            tokenBuffer = [];
-            this.negationFlag = false;
+          this.flushTokens(state);
+
+          if (state.operandBuffer.length > 0 && state.currentOperator) {
+            this.flushOperands(state, state.currentOperator);
           }
 
-          if (operandBuffer.length > 0) {
-            ast = this.flushOperatorNode(ast, operator, operandBuffer);
-            operandBuffer = [];
-          }
-
-          this.currentOperator = operator;
-
+          state.currentOperator = operator;
           break;
 
         case "negation":
-          if (tokenBuffer.length !== 0) {
-            // Handle Error. Negation in the middle of a text element
+          if (state.tokenBuffer.length !== 0) {
+            this.setError(400, "Negation must come before pattern tokens");
             return null;
           }
-
-          this.negationFlag = !this.negationFlag;
+          state.negationFlag = !state.negationFlag;
           break;
 
         case "wildcard":
-          tokenBuffer.push({ type: "wildcard" });
+          state.tokenBuffer.push({ type: "wildcard" });
           break;
 
         case "text":
           const content = lexemeList[i].content;
           if (typeof content !== "string") {
-            // Handle Error. Text Lexeme with no Content
+            this.setError(400, "Invalid text content");
             return null;
           }
-          tokenBuffer.push({ type: "text", content: content });
+          state.tokenBuffer.push({ type: "text", content: content });
           break;
       }
     }
-    ast = this.flushEnd(ast, tokenBuffer, operandBuffer);
-    return ast;
+
+    return this.flushEnd(state);
   }
 
-  private flushLexemeBuffer(lexemeList: LexemeElement[]) {
+  private flushLexemeBuffer(lexemeList: LexemeElement[]): LexemeElement[] {
     if (this.lexemeBuffer === "") {
       return lexemeList;
     }
@@ -218,56 +230,78 @@ export class Ae2uelOredicParser {
     return lexemeList;
   }
 
-  private flushOperatorNode(
-    ast: Ast,
-    situation: "AND" | "XOR" | "OR",
-    content: AstNode[]
-  ): Ast {
-    if (!content) {
-      // Handle error. No content
-      return null;
-    }
-
-    if (!ast) {
-      return content[0];
-    }
-
-    if (ast.type === "pattern" || this.currentOperator !== situation) {
-      return {
-        type: "operator",
-        operator: situation,
-        negation: false,
-        children: [ast].concat(content),
-      };
-    }
-
-    if (this.currentOperator === situation) {
-      ast.children = ast.children.concat(content);
-      return ast;
-    }
-
-    return ast;
-  }
-
-  private flushEnd(
-    ast: Ast,
-    tokenBuffer: Token[],
-    operandBuffer: AstNode[]
-  ): Ast {
-    if (tokenBuffer.length > 0) {
-      operandBuffer.push(
-        this.createPatternNode(tokenBuffer, this.negationFlag)
+  private flushTokens(state: ParseState): void {
+    if (state.tokenBuffer.length > 0) {
+      state.operandBuffer.push(
+        this.createPatternNode(state.tokenBuffer, state.negationFlag)
       );
+      state.tokenBuffer = [];
+      state.negationFlag = false;
     }
-
-    if (operandBuffer.length > 0 && this.currentOperator) {
-      ast = this.flushOperatorNode(ast, this.currentOperator, operandBuffer);
-    }
-
-    return ast;
   }
 
-  private updateParCount(side: "START" | "END") {
+  private flushOperands(
+    state: ParseState,
+    operator: "AND" | "XOR" | "OR"
+  ): void {
+    if (state.operandBuffer.length === 0) {
+      return;
+    }
+
+    if (!state.ast) {
+      if (state.operandBuffer.length === 1) {
+        state.ast = state.operandBuffer[0];
+        state.operandBuffer = [];
+        return;
+      }
+
+      state.ast = {
+        type: "operator",
+        operator: operator,
+        negation: false,
+        children: state.operandBuffer,
+      };
+      state.operandBuffer = [];
+      return;
+    }
+
+    if (state.ast.type === "operator" && state.ast.operator === operator) {
+      state.ast.children = state.ast.children.concat(state.operandBuffer);
+      state.operandBuffer = [];
+      return;
+    }
+
+    state.ast = {
+      type: "operator",
+      operator: operator,
+      negation: false,
+      children: [state.ast].concat(state.operandBuffer),
+    };
+    state.operandBuffer = [];
+  }
+
+  private flushEnd(state: ParseState): Ast {
+    if (state.tokenBuffer.length > 0) {
+      const pattern = this.createPatternNode(
+        state.tokenBuffer,
+        state.negationFlag
+      );
+
+      if (!state.ast && !state.currentOperator) {
+        return pattern;
+      }
+
+      state.operandBuffer.push(pattern);
+    }
+
+    if (state.operandBuffer.length > 0 && state.currentOperator) {
+      this.flushOperands(state, state.currentOperator);
+    }
+
+    return state.ast;
+  }
+
+  private updateParCount(side: "START" | "END"): void {
     switch (side) {
       case "START":
         this.parenthesesCount += 1;
@@ -275,7 +309,7 @@ export class Ae2uelOredicParser {
 
       case "END":
         if (this.parenthesesCount === 0) {
-          // Handle Error. ) comes before (
+          this.setError(400, "Closing parenthesis without opening");
           return;
         }
         this.parenthesesCount -= 1;
@@ -285,14 +319,21 @@ export class Ae2uelOredicParser {
 
   private createPatternNode(
     children: Token[],
-    negation: boolean = this.negationFlag
+    negation: boolean = false
   ): PatternNode {
     const node: PatternNode = {
       type: "pattern",
       negation: negation,
       children: children,
     };
-    this.negationFlag = false;
     return node;
+  }
+
+  private setError(code: number, message: string): void {
+    this.error.code = code;
+    this.error.status = true;
+    this.error.send = true;
+    this.error.message = message;
+    this.error.time = new Date();
   }
 }

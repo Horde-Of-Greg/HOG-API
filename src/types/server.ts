@@ -1,5 +1,6 @@
 import { SystemPromptChoice } from "./grok";
 import { EndpointConfig as ConfigEndpointConfig } from "../config/schema";
+import { PathLike } from "fs";
 
 export type LogType = "success" | "info" | "warn" | "error" | "debug";
 
@@ -36,3 +37,12 @@ export type RequestEndpointConfig = {
 };
 
 export type EndpointLevel = "source" | "main" | "child";
+
+export type MiscError = {
+  code: number | null;
+  status: boolean;
+  send: boolean;
+  message: string | null;
+  location: PathLike | null;
+  time: Date | null;
+};
