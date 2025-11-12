@@ -80,6 +80,7 @@ export class Ae2uelOredicParser {
     this.optimizationPipeline = [
       this.applyAssociativity.bind(this),
       this.applyAnnihilatorXor.bind(this),
+      this.applyDoubleNegation.bind(this),
       this.applyDeMorgan.bind(this),
       this.applyWildcardConjunction.bind(this),
     ];
