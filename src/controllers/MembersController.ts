@@ -68,12 +68,12 @@ export class MembersController {
             members = await this.getUsernamesAndIds();
             break;
         }
-        const time_taken_ms = stopTimer("members-fetch").getTime();
+        const time_taken_ms = stopTimer("members-fetch").getTime("ms", 0);
         getLogger().simpleLog(
           "info",
-          `Served Request on ${endpointConfig.main} in ${time_taken_ms}ms`
+          `Served Request on ${endpointConfig.main} in ${time_taken_ms.formatted}`
         );
-        res.json({ members: members, duration: time_taken_ms });
+        res.json({ members: members, duration: time_taken_ms.adjusted });
       } catch (err) {
         next(err);
       }

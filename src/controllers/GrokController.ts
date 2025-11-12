@@ -59,13 +59,13 @@ export class GrokController {
           endpointName
         );
 
-        const time_taken_ms = stopTimer("grok-req").getTime();
+        const time_taken = stopTimer("grok-req").getTime("ms", 0);
         getLogger().simpleLog(
           "info",
-          `Served Request on ${endpointConfig.endpointName} in ${time_taken_ms}ms`
+          `Served Request on ${endpointConfig.endpointName} in ${time_taken.formatted}`
         );
 
-        res.json({ completion: completion, duration: time_taken_ms });
+        res.json({ completion: completion, duration: time_taken.adjusted });
       } catch (err) {
         next(err);
       }

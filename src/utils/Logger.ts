@@ -10,7 +10,7 @@ export class Logger {
     this.name = config.LOGGER_NAME;
   }
 
-  static colors = {
+  private static colors = {
     success: "\x1b[32m", // Green
     info: "\x1b[36m", // Cyan
     warn: "\x1b[33m", // Yellow
@@ -45,7 +45,7 @@ export class Logger {
     console.log(log);
   }
 
-  getDateTime() {
+  private getDateTime() {
     const rawTimestamp = new Date();
     return rawTimestamp.toISOString();
   }
