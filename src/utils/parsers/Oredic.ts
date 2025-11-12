@@ -555,6 +555,7 @@ export class Ae2uelOredicParser {
     // The objective is to save chars, so this is why we compare the amounts of positive nodes vs.
     // negative nodes. We add 2 because this may add character overhead via adding a group
     if (counts.negative > counts.positive + 2) {
+      operatorNode.negation = false;
       for (const child of operatorNode.children) {
         child.negation = !child.negation;
       }
