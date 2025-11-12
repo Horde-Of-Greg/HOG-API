@@ -534,34 +534,9 @@ export class Ae2uelOredicParser {
   }
 
   // Double negation: NOT(NOT(a)) = a
-  // What's actually useful here to save a single char NOT(AND: (NOT(a), b)) = AND: (a, NOT(b))
   private applyDoubleNegation(node: AstNode): void {
     if (!this.operatorAccepted(node, "all")) return;
     const operatorNode = node as OperatorNode;
-    const counts: { positive: number; negative: number } = {
-      positive: 0,
-      negative: 0,
-    };
-
-    if (!operatorNode.negation) return;
-    for (const child of operatorNode.children) {
-      if (child.negation) {
-        counts.negative += 1;
-      } else {
-        counts.positive += 1;
-      }
-    }
-
-    // The objective is to save chars, so this is why we compare the amounts of positive nodes vs.
-    // negative nodes. We add 2 because this may add character overhead via adding a group
-    if (counts.negative > counts.positive + 2) {
-      operatorNode.negation = false;
-      for (const child of operatorNode.children) {
-        child.negation = !child.negation;
-      }
-    }
-
-    node = operatorNode;
   }
 
   // De Morgan's laws: OR: (NOT(a), NOT(b)) = NOT(AND: (a, b))
