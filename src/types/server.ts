@@ -39,6 +39,7 @@ export type RequestEndpointConfig = {
 export type EndpointLevel = "source" | "main" | "child";
 
 export type MiscError = {
+  type: "error";
   code: number | null;
   status: boolean;
   send: boolean;

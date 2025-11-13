@@ -3,43 +3,16 @@
  * https://github.com/AE2-UEL/Applied-Energistics-2/blob/26bb5986c636e9bdde62559b0d1c2bbc48c4b9e3/src/main/java/appeng/util/item/OreDictFilterMatcher.java#L11
  */
 
+import {
+  Ast,
+  AstNode,
+  PatternNode,
+  OperatorNode,
+  Token,
+} from "../../types/parsing";
 import { MiscError } from "../../types/server";
 import { getLogger } from "../Logger";
 import { startTimer, stopTimer, Timer } from "../Timer";
-
-type Ast = AstNode | null;
-
-type AstNode = PatternNode | OperatorNode;
-type PatternNode = {
-  type: "pattern";
-  negation: boolean;
-  children: Array<Token>;
-};
-
-type AndNode = {
-  type: "operator";
-  operator: "AND";
-  negation: boolean;
-  children: Array<AstNode>;
-};
-
-type OrNode = {
-  type: "operator";
-  operator: "OR";
-  negation: boolean;
-  children: Array<AstNode>;
-};
-
-type XorNode = {
-  type: "operator";
-  operator: "XOR";
-  negation: boolean;
-  children: Array<AstNode>;
-};
-
-type OperatorNode = AndNode | OrNode | XorNode;
-
-type Token = { type: "text"; content: string } | { type: "wildcard" };
 
 type LexemeElement = {
   type: "group" | "operator" | "negation" | "wildcard" | "text";
@@ -69,6 +42,7 @@ export class Ae2uelOredicParser {
     this.parenthesesCount = 0;
 
     this.error = {
+      type: "error",
       code: null,
       status: false,
       send: false,
@@ -80,7 +54,6 @@ export class Ae2uelOredicParser {
     this.optimizationPipeline = [
       this.applyAssociativity.bind(this),
       this.applyAnnihilatorXor.bind(this),
-      this.applyDoubleNegation.bind(this),
       this.applyDeMorgan.bind(this),
       this.applyWildcardConjunction.bind(this),
     ];
@@ -102,17 +75,11 @@ export class Ae2uelOredicParser {
       return this.error;
     }
 
-    getLogger().formattingLog("Bad AST");
-    getLogger().simpleLog("debug", JSON.stringify(ast, undefined, 4));
-
     this.flattenAst(ast);
 
     if (this.error.status) {
       return this.error;
     }
-
-    getLogger().formattingLog("Good AST");
-    getLogger().simpleLog("debug", JSON.stringify(ast, undefined, 4));
 
     getLogger().formattingLog("Results:");
     getLogger().simpleLog("debug", `Input: ${this.oredicString}`);
