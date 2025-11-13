@@ -2,7 +2,7 @@ export type Ast = AstNode | null;
 export type exAst = exAstNode | null;
 
 export type AstNode = PatternNode | OperatorNode;
-export type exAstNode = RegexNode | exOperatorNode | AstNode;
+export type exAstNode = RegexNode | OredicNode | exOperatorNode | AstNode;
 
 export type PatternNode = {
   type: "pattern";
@@ -15,6 +15,12 @@ export type RegexNode = {
   negation: boolean;
   rawChild: string;
   child: RegExp;
+};
+
+export type OredicNode = {
+  type: "oredic";
+  negation: boolean;
+  children: string[] | null;
 };
 
 export type OperatorNode = AndNode | OrNode | XorNode;
