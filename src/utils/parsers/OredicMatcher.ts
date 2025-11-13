@@ -97,6 +97,14 @@ export class OredicMatcher {
       return null;
     }
 
+    if (ast.negation && (ast.operator === "AND" || ast.operator === "OR")) {
+      ast.operator = ast.operator === "AND" ? "OR" : "AND";
+      ast.negation = false;
+      for (const child of ast.children) {
+        child.negation = !child.negation;
+      }
+    }
+
     for (let i = 0; i < ast.children.length; i++) {
       const result = this.parseOredics(ast.children[i]);
       if (result) {
@@ -160,7 +168,9 @@ export class OredicMatcher {
 
   private applyConjunction(node: exAndNode): OredicNode {
     const occurences = new Map<string, number>();
+    const toRemove = new Set<string>();
     let newChildren: string[] = [];
+    let nonNegatedCount = 0;
 
     for (const child of node.children) {
       if (child.type !== "oredic") {
@@ -170,34 +180,56 @@ export class OredicMatcher {
         );
         return {
           type: "oredic",
-          negation: node.negation,
+          negation: false,
           children: [],
         };
       }
 
       if (!child.children || child.children.length === 0) {
-        return {
-          type: "oredic",
-          negation: node.negation,
-          children: [],
-        };
+        if (!child.negation) {
+          return {
+            type: "oredic",
+            negation: false,
+            children: [],
+          };
+        }
+        continue;
       }
 
-      for (const oredic of child.children) {
-        const currentCount = occurences.get(oredic) ?? 0;
-        occurences.set(oredic, currentCount + 1);
+      if (child.negation) {
+        for (const oredic of child.children) {
+          toRemove.add(oredic);
+        }
+      } else {
+        nonNegatedCount++;
+        for (const oredic of child.children) {
+          const currentCount = occurences.get(oredic) ?? 0;
+          occurences.set(oredic, currentCount + 1);
+        }
       }
     }
 
+    if (nonNegatedCount === 0) {
+      this.setError(
+        500,
+        "AND operation requires at least one non-negated child"
+      );
+      return {
+        type: "oredic",
+        negation: false,
+        children: [],
+      };
+    }
+
     occurences.forEach((value, key) => {
-      if (value === node.children.length) {
+      if (value === nonNegatedCount && !toRemove.has(key)) {
         newChildren.push(key);
       }
     });
 
     return {
       type: "oredic",
-      negation: node.negation,
+      negation: false,
       children: newChildren,
     };
   }
@@ -213,18 +245,20 @@ export class OredicMatcher {
         );
         return {
           type: "oredic",
-          negation: node.negation,
+          negation: false,
           children: [],
         };
       }
 
-      const toConcat = child.children ? child.children : [];
-      newChildren = newChildren.concat(toConcat);
+      if (!child.negation) {
+        const toConcat = child.children ? child.children : [];
+        newChildren = newChildren.concat(toConcat);
+      }
     }
 
     return {
       type: "oredic",
-      negation: node.negation,
+      negation: false,
       children: newChildren,
     };
   }
@@ -241,7 +275,7 @@ export class OredicMatcher {
         );
         return {
           type: "oredic",
-          negation: node.negation,
+          negation: false,
           children: [],
         };
       }
@@ -250,21 +284,39 @@ export class OredicMatcher {
         continue;
       }
 
+      const multiplier = child.negation ? -1 : 1;
+
       for (const oredic of child.children) {
         const currentCount = occurences.get(oredic) ?? 0;
-        occurences.set(oredic, currentCount + 1);
+        occurences.set(oredic, currentCount + multiplier);
       }
     }
 
     occurences.forEach((value, key) => {
-      if (value === 1) {
+      if (Math.abs(value) % 2 === 1) {
         newChildren.push(key);
       }
     });
 
+    if (node.negation) {
+      const dump = DUMPS.get(this.pack);
+      if (!dump) {
+        this.setError(500, "Failed to get dump for negated XOR operation");
+        return {
+          type: "oredic",
+          negation: false,
+          children: [],
+        };
+      }
+
+      const allOredics = dump.split("\n").filter((line) => line.trim() !== "");
+      const resultSet = new Set(newChildren);
+      newChildren = allOredics.filter((oredic) => !resultSet.has(oredic));
+    }
+
     return {
       type: "oredic",
-      negation: node.negation,
+      negation: false,
       children: newChildren,
     };
   }
