@@ -1,17 +1,23 @@
 import { DUMPS } from "../../loaders/storage";
 import {
+  AndNode,
   AstNode,
-  OredicNode,
+  OperatorNode,
   PatternNode,
-  RegexNode,
   SupportedPack,
+  exAndNode,
   exAst,
+  exOperatorNode,
+  RegexNode,
+  OredicNode,
 } from "../../types/parsing";
+import { MiscError } from "../../types/server";
 import { getLogger } from "../Logger";
 
 export class OredicMatcher {
-  validOredics: string[];
+  validOredics: string[] | null;
   ast: exAst;
+  error: MiscError;
 
   constructor(
     private rules: AstNode,
@@ -19,15 +25,26 @@ export class OredicMatcher {
   ) {
     this.pack = "nomi-ceu";
     this.ast = rules;
+
+    this.error = {
+      type: "error",
+      code: null,
+      status: false,
+      send: false,
+      message: null,
+      location: __dirname,
+      time: null,
+    };
+
     this.validOredics = this.parse(this.ast);
   }
 
-  parse(ast: exAst): string[] {
+  parse(ast: exAst): string[] | null {
     this.parsePatterns(ast);
     this.parseRegexes(ast);
-    // 2nd parse: match patterns to list of oredics
-    // 3nd parse: join/disjoin children based on the operators and negation
-    return [];
+    const finalNode = this.parseOredics(ast);
+    if (!finalNode) return null;
+    return finalNode.children;
   }
 
   private parsePatterns(ast: exAst): void {
@@ -65,8 +82,50 @@ export class OredicMatcher {
     }
   }
 
+  private parseOredics(ast: exAst): OredicNode | null {
+    if (!ast) return null;
+
+    if (ast.type === "oredic") return ast;
+
+    if (ast.type !== "operator") {
+      this.setError(
+        500,
+        "Unknown Error: Got something else than Oredic and Operator Nodes in the final parse"
+      );
+      return null;
+    }
+
+    for (let i = 0; i < ast.children.length; i++) {
+      const result = this.parseOredics(ast.children[i]);
+      if (result) {
+        ast.children[i] = result;
+      }
+    }
+
+    let newNode: OredicNode | null = null;
+    switch (ast.operator) {
+      case "AND":
+        newNode = this.applyConjunction(ast);
+        break;
+      case "OR":
+        // TODO: implement OR logic
+        break;
+      case "XOR":
+        // TODO: implement XOR logic
+        break;
+    }
+
+    if (newNode) {
+      delete (ast as any).operator;
+      Object.assign(ast, newNode);
+      return ast as unknown as OredicNode;
+    }
+
+    return null;
+  }
+
   private createRegex(node: PatternNode): RegexNode {
-    let pattern = "";
+    let pattern = "^";
     for (const child of node.children) {
       if (child.type === "wildcard") {
         pattern += "[a-zA-Z]+";
@@ -74,11 +133,12 @@ export class OredicMatcher {
         pattern += child.content;
       }
     }
+    pattern += "$";
     return {
       type: "regex",
       negation: node.negation,
       rawChild: pattern,
-      child: new RegExp(pattern, "g"),
+      child: new RegExp(pattern, "gm"),
     };
   }
 
@@ -94,5 +154,79 @@ export class OredicMatcher {
       negation: node.negation,
       children: oredicList,
     };
+  }
+
+  private applyConjunction(node: exAndNode): OredicNode {
+    const occurences = new Map<string, number>();
+    let newChildren: string[] = [];
+
+    getLogger().formattingLog("Apply Conjunction");
+    getLogger().simpleLog(
+      "debug",
+      `Number of children: ${node.children.length}`
+    );
+
+    for (const child of node.children) {
+      if (child.type !== "oredic") {
+        this.setError(
+          500,
+          "Unknown Error: Tried to apply conjunction on something else than an oredic node"
+        );
+        return {
+          type: "oredic",
+          negation: node.negation,
+          children: [],
+        };
+      }
+
+      if (!child.children || child.children.length === 0) {
+        getLogger().simpleLog(
+          "debug",
+          "Found empty child - returning empty array"
+        );
+        return {
+          type: "oredic",
+          negation: node.negation,
+          children: [],
+        };
+      }
+
+      getLogger().simpleLog(
+        "debug",
+        `Child has ${child.children.length} oredics`
+      );
+
+      for (const oredic of child.children) {
+        const currentCount = occurences.get(oredic) ?? 0;
+        occurences.set(oredic, currentCount + 1);
+      }
+    }
+
+    getLogger().simpleLog("debug", `Total unique oredics: ${occurences.size}`);
+
+    occurences.forEach((value, key) => {
+      if (value === node.children.length) {
+        newChildren.push(key);
+      }
+    });
+
+    getLogger().simpleLog(
+      "debug",
+      `Common oredics found: ${newChildren.length}`
+    );
+
+    return {
+      type: "oredic",
+      negation: node.negation,
+      children: newChildren,
+    };
+  }
+
+  private setError(code: number, message: string): void {
+    this.error.code = code;
+    this.error.status = true;
+    this.error.send = true;
+    this.error.message = message;
+    this.error.time = new Date();
   }
 }
