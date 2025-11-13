@@ -52,6 +52,7 @@ export class OredicMatcher {
     return {
       type: "regex",
       negation: patternNode.negation,
+      rawChild: pattern,
       child: new RegExp(pattern),
     };
   }

@@ -13,6 +13,7 @@ export type PatternNode = {
 export type RegexNode = {
   type: "regex";
   negation: boolean;
+  rawChild: string;
   child: RegExp;
 };
 
