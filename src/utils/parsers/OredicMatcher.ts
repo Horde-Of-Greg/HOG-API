@@ -10,6 +10,8 @@ import {
   exOperatorNode,
   RegexNode,
   OredicNode,
+  exOrNode,
+  exXorNode,
 } from "../../types/parsing";
 import { MiscError } from "../../types/server";
 import { getLogger } from "../Logger";
@@ -108,10 +110,10 @@ export class OredicMatcher {
         newNode = this.applyConjunction(ast);
         break;
       case "OR":
-        // TODO: implement OR logic
+        newNode = this.applyDisjunction(ast);
         break;
       case "XOR":
-        // TODO: implement XOR logic
+        newNode = this.applyExclusiveDisjunction(ast);
         break;
     }
 
@@ -160,12 +162,6 @@ export class OredicMatcher {
     const occurences = new Map<string, number>();
     let newChildren: string[] = [];
 
-    getLogger().formattingLog("Apply Conjunction");
-    getLogger().simpleLog(
-      "debug",
-      `Number of children: ${node.children.length}`
-    );
-
     for (const child of node.children) {
       if (child.type !== "oredic") {
         this.setError(
@@ -180,9 +176,40 @@ export class OredicMatcher {
       }
 
       if (!child.children || child.children.length === 0) {
-        getLogger().simpleLog(
-          "debug",
-          "Found empty child - returning empty array"
+        return {
+          type: "oredic",
+          negation: node.negation,
+          children: [],
+        };
+      }
+
+      for (const oredic of child.children) {
+        const currentCount = occurences.get(oredic) ?? 0;
+        occurences.set(oredic, currentCount + 1);
+      }
+    }
+
+    occurences.forEach((value, key) => {
+      if (value === node.children.length) {
+        newChildren.push(key);
+      }
+    });
+
+    return {
+      type: "oredic",
+      negation: node.negation,
+      children: newChildren,
+    };
+  }
+
+  private applyDisjunction(node: exOrNode): OredicNode {
+    let newChildren: string[] = [];
+
+    for (const child of node.children) {
+      if (child.type !== "oredic") {
+        this.setError(
+          500,
+          "Unknown Error: Tried to apply disjunction on something else than an oredic node"
         );
         return {
           type: "oredic",
@@ -191,10 +218,37 @@ export class OredicMatcher {
         };
       }
 
-      getLogger().simpleLog(
-        "debug",
-        `Child has ${child.children.length} oredics`
-      );
+      const toConcat = child.children ? child.children : [];
+      newChildren = newChildren.concat(toConcat);
+    }
+
+    return {
+      type: "oredic",
+      negation: node.negation,
+      children: newChildren,
+    };
+  }
+
+  private applyExclusiveDisjunction(node: exXorNode): OredicNode {
+    const occurences = new Map<string, number>();
+    let newChildren: string[] = [];
+
+    for (const child of node.children) {
+      if (child.type !== "oredic") {
+        this.setError(
+          500,
+          "Unknown Error: Tried to apply xor on something else than an oredic node"
+        );
+        return {
+          type: "oredic",
+          negation: node.negation,
+          children: [],
+        };
+      }
+
+      if (!child.children || child.children.length === 0) {
+        continue;
+      }
 
       for (const oredic of child.children) {
         const currentCount = occurences.get(oredic) ?? 0;
@@ -202,18 +256,11 @@ export class OredicMatcher {
       }
     }
 
-    getLogger().simpleLog("debug", `Total unique oredics: ${occurences.size}`);
-
     occurences.forEach((value, key) => {
-      if (value === node.children.length) {
+      if (value === 1) {
         newChildren.push(key);
       }
     });
-
-    getLogger().simpleLog(
-      "debug",
-      `Common oredics found: ${newChildren.length}`
-    );
 
     return {
       type: "oredic",

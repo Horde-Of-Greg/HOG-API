@@ -19,7 +19,7 @@ export class OredicController {
     }
 
     const Matcher = new OredicMatcher(rules, "nomi-ceu");
-    return Matcher.ast;
+    return Matcher.validOredics;
   }
 
   handler =
