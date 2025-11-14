@@ -13,30 +13,19 @@ import {
   exOrNode,
   exXorNode,
 } from "../../types/parsing";
-import { MiscError } from "../../types/server";
-import { getLogger } from "../Logger";
+import { ErrorProne } from "../parentClasses/ErrorProne";
 
-export class OredicMatcher {
+export class OredicMatcher extends ErrorProne {
   validOredics: string[] | null;
   ast: exAst;
-  error: MiscError;
 
   constructor(
     private rules: AstNode,
     private pack: SupportedPack
   ) {
+    super();
     this.pack = "nomi-ceu";
     this.ast = rules;
-
-    this.error = {
-      type: "error",
-      code: null,
-      status: false,
-      send: false,
-      message: null,
-      location: __dirname,
-      time: null,
-    };
 
     this.validOredics = this.parse(this.ast);
   }
@@ -319,13 +308,5 @@ export class OredicMatcher {
       negation: false,
       children: newChildren,
     };
-  }
-
-  private setError(code: number, message: string): void {
-    this.error.code = code;
-    this.error.status = true;
-    this.error.send = true;
-    this.error.message = message;
-    this.error.time = new Date();
   }
 }

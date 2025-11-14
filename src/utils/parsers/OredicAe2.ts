@@ -3,6 +3,7 @@
  * https://github.com/AE2-UEL/Applied-Energistics-2/blob/26bb5986c636e9bdde62559b0d1c2bbc48c4b9e3/src/main/java/appeng/util/item/OreDictFilterMatcher.java#L11
  */
 
+import { StandardError } from "../../types/errors";
 import {
   Ast,
   AstNode,
@@ -10,9 +11,7 @@ import {
   OperatorNode,
   Token,
 } from "../../types/parsing";
-import { MiscError } from "../../types/server";
-import { getLogger } from "../Logger";
-import { startTimer, stopTimer, Timer } from "../Timer";
+import { ErrorProne } from "../parentClasses/ErrorProne";
 
 type LexemeElement = {
   type: "group" | "operator" | "negation" | "wildcard" | "text";
@@ -27,29 +26,18 @@ type ParseState = {
   negationFlag: boolean;
 };
 
-export class Ae2uelOredicParser {
+export class Ae2uelOredicParser extends ErrorProne {
   lexemeBuffer: string;
 
   parenthesesCount: number;
 
-  error: MiscError;
-
   private optimizationPipeline: Array<(node: AstNode) => void>;
 
   constructor(private oredicString: string) {
+    super();
     this.lexemeBuffer = "";
 
     this.parenthesesCount = 0;
-
-    this.error = {
-      type: "error",
-      code: null,
-      status: false,
-      send: false,
-      message: null,
-      location: __dirname,
-      time: null,
-    };
 
     this.optimizationPipeline = [
       this.applyAssociativity.bind(this),
@@ -59,8 +47,7 @@ export class Ae2uelOredicParser {
     ];
   }
 
-  parse(): Ast | MiscError {
-    startTimer("parser");
+  parse(): Ast | StandardError {
     const { lexemeList } = this.lexicalParse(this.oredicString.split(""));
 
     if (this.parenthesesCount !== 0) {
@@ -69,7 +56,6 @@ export class Ae2uelOredicParser {
     }
 
     const ast = this.parseNode(lexemeList);
-    const badAst = JSON.stringify(ast);
 
     if (this.error.status) {
       return this.error;
@@ -81,17 +67,6 @@ export class Ae2uelOredicParser {
       return this.error;
     }
 
-    getLogger().formattingLog("Results:");
-    getLogger().simpleLog("debug", `Input: ${this.oredicString}`);
-
-    getLogger().simpleLog(
-      "debug",
-      `Time taken: ${stopTimer("parser").getTime().formatted}`
-    );
-    getLogger().simpleLog(
-      "debug",
-      `Changed?: ${JSON.stringify(ast) !== badAst}`
-    );
     return ast;
   }
 
@@ -550,21 +525,5 @@ export class Ae2uelOredicParser {
     if (node.type === "pattern") return false;
     if (acceptedOperators === "all") return true;
     return acceptedOperators.includes(node.operator);
-  }
-
-  private setError(code: number, message: string): void {
-    this.error.code = code;
-    this.error.status = true;
-    this.error.send = true;
-    this.error.message = message;
-    this.error.time = new Date();
-  }
-
-  private setWarn(message: string): void {
-    this.error.code = 200;
-    this.error.status = true;
-    this.error.send = true;
-    this.error.message = message;
-    this.error.time = new Date();
   }
 }
