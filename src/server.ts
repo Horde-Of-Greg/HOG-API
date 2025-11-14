@@ -43,10 +43,9 @@ async function main() {
       "info",
       `Server is running at http://${config.RUNNING_IP}:${config.PORT}`
     );
-    const main_timeTaken_ms = stopTimer("main").getTime();
     getLogger().simpleLog(
       "info",
-      `Server took ${main_timeTaken_ms}ms to start`
+      `Server took ${stopTimer("main").getTime("auto", 3).formatted} to start`
     );
   });
 }

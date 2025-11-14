@@ -11,3 +11,5 @@ logs/
 ecosystem.config.js
 
 dist/
+
+src/local/

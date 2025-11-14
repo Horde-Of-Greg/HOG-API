@@ -1,5 +1,6 @@
 import { SystemPromptChoice } from "./grok";
 import { EndpointConfig as ConfigEndpointConfig } from "../config/schema";
+import { PathLike } from "fs";
 
 export type LogType = "success" | "info" | "warn" | "error" | "debug";
 
