@@ -81,6 +81,15 @@ export function stopTimer(id: string): Timer {
   return time;
 }
 
+export function queryTimer(id: string): Timer {
+  const time = timers.get(id);
+  if (!time)
+    throw new Error(
+      `Timer ${id} not initialized. Call startTimer(id:string) first.`
+    );
+  return time;
+}
+
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

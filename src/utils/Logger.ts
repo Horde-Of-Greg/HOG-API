@@ -1,53 +1,189 @@
 import { config } from "../config/config";
 import { LogType } from "../types/server";
+import { queryTimer } from "./Timer";
 
 let logger: Logger | null = null;
 
+enum AnsiColor {
+  SUCCESS = "\x1b[32m",
+  INFO = "\x1b[36m",
+  WARN = "\x1b[33m",
+  ERROR = "\x1b[31m",
+  DEBUG = "\x1b[35m",
+  FORMAT = "\x1b[37m",
+  RESET = "\x1b[0m",
+}
+
+enum FormattingConstant {
+  MAX_TYPE_LENGTH = 7, // "success".length
+  PROGRESS_BAR_FILLED = "█",
+  PROGRESS_BAR_EMPTY = "░",
+  FORMATTING_DASH = "-",
+  FORMATTING_TARGET_WIDTH = 50,
+  SECONDS_PER_MINUTE = 60,
+  MILLISECONDS_PER_SECOND = 1000,
+}
+
 export class Logger {
-  name: string;
+  private name: string;
 
   constructor() {
     this.name = config.LOGGER_NAME;
   }
 
-  private static colors = {
-    success: "\x1b[32m", // Green
-    info: "\x1b[36m", // Cyan
-    warn: "\x1b[33m", // Yellow
-    error: "\x1b[31m", // Red
-    debug: "\x1b[35m", // Magenta
-    format: "\x1b[37m", // White
-    reset: "\x1b[0m",
-  };
+  simpleLog(type: LogType, message: string): void {
+    const timestamp = this.getCurrentTimestamp();
+    const logPrefix = this.formatLogPrefix(type, timestamp);
+    const coloredMessage = this.colorize(message, type);
 
-  simpleLog(type: LogType, message: string) {
-    const name = `[${this.name}:${type.toUpperCase()}]`;
-    const date = `[${this.getDateTime()}]`;
-    const whitespaces = " ".repeat("success".length - type.length);
-    const content = message;
-    const color = Logger.colors[type];
-    const log = `${color}${name}${whitespaces}@${date}: ${content}${Logger.colors.reset}`;
-    console.log(log);
+    console.log(`${logPrefix}: ${coloredMessage}`);
   }
 
-  formattingLog(title: string) {
-    const type = "format";
-    const name = `[${this.name}:${type.toUpperCase()}]`;
-    const date = `[${this.getDateTime()}]`;
-    const whitespaces = " ".repeat("success".length - type.length);
-    const targetLength = 50;
-    const dashesNb = (targetLength - title.length) / 2;
-    const dashes = "-".repeat(dashesNb);
-    const extraDash = dashesNb % 1 != 0 ? "-" : "";
-    const content = `|${dashes} ${title} ${dashes}${extraDash}|`;
-    const color = Logger.colors[type];
-    const log = `${color}${name}${whitespaces}@${date}: ${content}${Logger.colors.reset}`;
-    console.log(log);
+  formattingLog(title: string): void {
+    const timestamp = this.getCurrentTimestamp();
+    const logPrefix = this.formatLogPrefix("format", timestamp);
+    const formattedTitle = this.formatTitle(title);
+    const coloredTitle = this.colorize(formattedTitle, "format");
+
+    console.log(`${logPrefix}: ${coloredTitle}`);
   }
 
-  private getDateTime() {
-    const rawTimestamp = new Date();
-    return rawTimestamp.toISOString();
+  progressBar(
+    currentCount: number,
+    totalCount: number,
+    timerId: string,
+    barWidth: number = 50,
+    label: string = ""
+  ): void {
+    const progress = this.buildProgressBar(
+      currentCount,
+      totalCount,
+      timerId,
+      barWidth,
+      label
+    );
+
+    const coloredProgress = this.colorize(progress, "info");
+    process.stdout.write(`\r${coloredProgress}`);
+
+    const isComplete = currentCount === totalCount;
+    if (isComplete) {
+      process.stdout.write("\n");
+    }
+  }
+
+  /*
+   * Formatting helpers
+   */
+
+  private formatLogPrefix(type: LogType | "format", timestamp: string): string {
+    const logName = `[${this.name}:${type.toUpperCase()}]`;
+    const logTimestamp = `[${timestamp}]`;
+    const padding = " ".repeat(
+      FormattingConstant.MAX_TYPE_LENGTH - type.length
+    );
+
+    return `${logName}${padding}@${logTimestamp}`;
+  }
+
+  private formatTitle(title: string): string {
+    const dashCount =
+      (FormattingConstant.FORMATTING_TARGET_WIDTH - title.length) / 2;
+    const dashes = (FormattingConstant.FORMATTING_DASH as string).repeat(
+      dashCount
+    );
+    const hasOddLength = dashCount % 1 !== 0;
+    const extraDash = hasOddLength ? FormattingConstant.FORMATTING_DASH : "";
+
+    return `|${dashes} ${title} ${dashes}${extraDash}|`;
+  }
+
+  private buildProgressBar(
+    currentCount: number,
+    totalCount: number,
+    timerId: string,
+    barWidth: number,
+    label: string
+  ): string {
+    const percentage = Math.floor((currentCount / totalCount) * 100);
+    const bar = this.createBar(currentCount, totalCount, barWidth);
+    const timeInfo = this.createTimeInfo(currentCount, totalCount, timerId);
+    const labelText = label ? ` ${label}` : "";
+
+    return `[${bar}] ${percentage}% (${currentCount}/${totalCount})${labelText} ${timeInfo}`;
+  }
+
+  private createBar(
+    currentCount: number,
+    totalCount: number,
+    barWidth: number
+  ): string {
+    const filledWidth = Math.floor((currentCount / totalCount) * barWidth);
+    const emptyWidth = Math.max(0, barWidth - filledWidth);
+
+    const filled = (FormattingConstant.PROGRESS_BAR_FILLED as string).repeat(
+      filledWidth
+    );
+    const empty = (FormattingConstant.PROGRESS_BAR_EMPTY as string).repeat(
+      emptyWidth
+    );
+
+    return `${filled}${empty}`;
+  }
+
+  private createTimeInfo(
+    currentCount: number,
+    totalCount: number,
+    timerId: string
+  ): string {
+    const elapsedMilliseconds = queryTimer(timerId).getTime("ms").raw;
+    const elapsedSeconds = Math.floor(
+      elapsedMilliseconds / FormattingConstant.MILLISECONDS_PER_SECOND
+    );
+    const elapsedFormatted = this.formatTime(elapsedSeconds);
+
+    let etaText = "";
+    const isInProgress = currentCount < totalCount && currentCount > 0;
+
+    if (isInProgress) {
+      const remainingMilliseconds =
+        (elapsedMilliseconds / currentCount) * (totalCount - currentCount);
+      const remainingSeconds = Math.floor(
+        remainingMilliseconds / FormattingConstant.MILLISECONDS_PER_SECOND
+      );
+      const etaFormatted = this.formatTime(remainingSeconds);
+      etaText = ` ETA: ${etaFormatted}`;
+    }
+
+    return `[${elapsedFormatted}]${etaText}`;
+  }
+
+  private formatTime(totalSeconds: number): string {
+    const minutes = Math.floor(
+      totalSeconds / FormattingConstant.SECONDS_PER_MINUTE
+    );
+    const seconds = totalSeconds % FormattingConstant.SECONDS_PER_MINUTE;
+    const paddedSeconds = seconds.toString().padStart(2, "0");
+
+    return `${minutes}:${paddedSeconds}`;
+  }
+
+  private colorize(text: string, type: LogType | "format"): string {
+    const colorMap: Record<LogType | "format", AnsiColor> = {
+      success: AnsiColor.SUCCESS,
+      info: AnsiColor.INFO,
+      warn: AnsiColor.WARN,
+      error: AnsiColor.ERROR,
+      debug: AnsiColor.DEBUG,
+      format: AnsiColor.FORMAT,
+    };
+
+    const color = colorMap[type];
+    return `${color}${text}${AnsiColor.RESET}`;
+  }
+
+  private getCurrentTimestamp(): string {
+    return new Date().toISOString();
   }
 }
 

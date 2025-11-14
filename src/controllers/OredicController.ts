@@ -1,14 +1,13 @@
 import { RequestHandler, Request, Response, NextFunction } from "express";
-import { Ae2uelOredicParser } from "../utils/parsers/OredicAe2";
-import { getLogger } from "../utils/Logger";
+import { OredicParser } from "../utils/parsers/OredicParser";
 import { OredicMatcher } from "../utils/parsers/OredicMatcher";
 
 export class OredicController {
   constructor() {}
 
   async answer(req: Request) {
-    const Parser = new Ae2uelOredicParser(req.body.string);
-    const rules = Parser.parse();
+    const Parser = new OredicParser();
+    const rules = Parser.parse(req.body.string);
     if (!rules) {
       // Catch unknown error
       return;
@@ -19,7 +18,7 @@ export class OredicController {
     }
 
     const Matcher = new OredicMatcher(rules, "nomi-ceu");
-    return Matcher.validOredics;
+    return Matcher.match();
   }
 
   handler =

@@ -10,33 +10,23 @@ import {
   PatternNode,
   OperatorNode,
   Token,
+  OperatorChar,
+  SpecialChar,
+  NodeNames,
+  LexemeElement,
+  LexemeNames,
+  ParseState,
 } from "../../types/parsing";
 import { ErrorProne } from "../parentClasses/ErrorProne";
 
-type LexemeElement = {
-  type: "group" | "operator" | "negation" | "wildcard" | "text";
-  content: LexemeElement[] | string | null;
-};
-
-type ParseState = {
-  ast: Ast;
-  tokenBuffer: Token[];
-  operandBuffer: AstNode[];
-  currentOperator: "AND" | "XOR" | "OR" | null;
-  negationFlag: boolean;
-};
-
-export class Ae2uelOredicParser extends ErrorProne {
-  lexemeBuffer: string;
-
-  parenthesesCount: number;
-
+export class OredicParser extends ErrorProne {
+  private lexemeBuffer: string;
+  private parenthesesCount: number;
   private optimizationPipeline: Array<(node: AstNode) => void>;
 
-  constructor(private oredicString: string) {
+  constructor() {
     super();
     this.lexemeBuffer = "";
-
     this.parenthesesCount = 0;
 
     this.optimizationPipeline = [
@@ -47,8 +37,10 @@ export class Ae2uelOredicParser extends ErrorProne {
     ];
   }
 
-  parse(): Ast | StandardError {
-    const { lexemeList } = this.lexicalParse(this.oredicString.split(""));
+  parse(input: string): Ast | StandardError {
+    this.resetState();
+
+    const { lexemeList } = this.lexicalParse(input.split(""));
 
     if (this.parenthesesCount !== 0) {
       this.setError(400, "Unbalanced parentheses");
@@ -71,7 +63,19 @@ export class Ae2uelOredicParser extends ErrorProne {
   }
 
   /*
-   * Main methods
+   * State management
+   */
+
+  private resetState(): void {
+    this.lexemeBuffer = "";
+    this.parenthesesCount = 0;
+    this.error.status = false;
+    this.error.code = null;
+    this.error.message = null;
+  }
+
+  /*
+   * Lexical parsing
    */
 
   private lexicalParse(pattern: string[]): {
@@ -82,45 +86,48 @@ export class Ae2uelOredicParser extends ErrorProne {
 
     for (let i = 0; i < pattern.length; i++) {
       switch (pattern[i]) {
-        case " ":
+        case SpecialChar.SPACE:
           break;
 
-        case "(":
+        case SpecialChar.GROUP_START:
           lexemeList = this.flushLexemeBuffer(lexemeList);
-          this.updateParCount("START");
+          this.incrementParentheses();
 
           const result = this.lexicalParse(pattern.slice(i + 1));
-          lexemeList.push({ type: "group", content: result.lexemeList });
+          lexemeList.push({
+            type: LexemeNames.GROUP,
+            content: result.lexemeList,
+          });
 
           i += result.consumed;
 
           break;
-        case ")":
+        case SpecialChar.GROUP_END:
           lexemeList = this.flushLexemeBuffer(lexemeList);
-          this.updateParCount("END");
+          this.decrementParentheses();
           return { lexemeList, consumed: i + 1 };
 
-        case "&":
+        case OperatorChar.AND:
           lexemeList = this.flushLexemeBuffer(lexemeList);
-          lexemeList.push({ type: "operator", content: "AND" });
+          lexemeList.push({ type: LexemeNames.OPERATOR, content: "AND" });
           break;
-        case "^":
+        case OperatorChar.XOR:
           lexemeList = this.flushLexemeBuffer(lexemeList);
-          lexemeList.push({ type: "operator", content: "XOR" });
+          lexemeList.push({ type: LexemeNames.OPERATOR, content: "XOR" });
           break;
-        case "|":
+        case OperatorChar.OR:
           lexemeList = this.flushLexemeBuffer(lexemeList);
-          lexemeList.push({ type: "operator", content: "OR" });
-          break;
-
-        case "!":
-          lexemeList = this.flushLexemeBuffer(lexemeList);
-          lexemeList.push({ type: "negation", content: null });
+          lexemeList.push({ type: LexemeNames.OPERATOR, content: "OR" });
           break;
 
-        case "*":
+        case SpecialChar.NEGATION:
           lexemeList = this.flushLexemeBuffer(lexemeList);
-          lexemeList.push({ type: "wildcard", content: null });
+          lexemeList.push({ type: LexemeNames.NEGATION, content: null });
+          break;
+
+        case SpecialChar.WILDCARD:
+          lexemeList = this.flushLexemeBuffer(lexemeList);
+          lexemeList.push({ type: LexemeNames.WILDCARD, content: null });
           break;
 
         default:
@@ -203,7 +210,7 @@ export class Ae2uelOredicParser extends ErrorProne {
           break;
 
         case "wildcard":
-          state.tokenBuffer.push({ type: "wildcard" });
+          state.tokenBuffer.push({ type: NodeNames.WILDCARD });
           break;
 
         case "text":
@@ -212,7 +219,7 @@ export class Ae2uelOredicParser extends ErrorProne {
             this.setError(400, "Invalid text content");
             return null;
           }
-          state.tokenBuffer.push({ type: "text", content: content });
+          state.tokenBuffer.push({ type: NodeNames.TEXT, content: content });
           break;
       }
     }
@@ -235,7 +242,7 @@ export class Ae2uelOredicParser extends ErrorProne {
         fn(currentAst);
       }
 
-      if (currentAst.type === "pattern") return;
+      if (currentAst.type === NodeNames.PATTERN) return;
 
       for (const child of currentAst.children) {
         this.flattenAst(child);
@@ -246,16 +253,15 @@ export class Ae2uelOredicParser extends ErrorProne {
   }
 
   /*
-   * Helper methods
+   * Buffer management
    */
 
   private flushLexemeBuffer(lexemeList: LexemeElement[]): LexemeElement[] {
     if (this.lexemeBuffer === "") {
       return lexemeList;
     }
-    lexemeList.push({ type: "text", content: this.lexemeBuffer });
+    lexemeList.push({ type: LexemeNames.TEXT, content: this.lexemeBuffer });
     this.lexemeBuffer = "";
-
     return lexemeList;
   }
 
@@ -285,7 +291,7 @@ export class Ae2uelOredicParser extends ErrorProne {
       }
 
       state.ast = {
-        type: "operator",
+        type: NodeNames.OPERATOR,
         operator: operator,
         negation: false,
         children: state.operandBuffer,
@@ -294,14 +300,17 @@ export class Ae2uelOredicParser extends ErrorProne {
       return;
     }
 
-    if (state.ast.type === "operator" && state.ast.operator === operator) {
+    if (
+      state.ast.type === NodeNames.OPERATOR &&
+      state.ast.operator === operator
+    ) {
       state.ast.children = state.ast.children.concat(state.operandBuffer);
       state.operandBuffer = [];
       return;
     }
 
     state.ast = {
-      type: "operator",
+      type: NodeNames.OPERATOR,
       operator: operator,
       negation: false,
       children: [state.ast].concat(state.operandBuffer),
@@ -330,20 +339,41 @@ export class Ae2uelOredicParser extends ErrorProne {
     return state.ast;
   }
 
-  private updateParCount(side: "START" | "END"): void {
-    switch (side) {
-      case "START":
-        this.parenthesesCount += 1;
-        break;
+  /*
+   * Character classification and operator helpers
+   */
 
-      case "END":
-        if (this.parenthesesCount === 0) {
-          this.setError(400, "Closing parenthesis without opening");
-          return;
-        }
-        this.parenthesesCount -= 1;
-        break;
+  private isOperatorChar(char: string): boolean {
+    return (
+      char === OperatorChar.AND ||
+      char === OperatorChar.OR ||
+      char === OperatorChar.XOR
+    );
+  }
+
+  private getOperatorName(char: string): "AND" | "OR" | "XOR" {
+    switch (char) {
+      case OperatorChar.AND:
+        return "AND";
+      case OperatorChar.OR:
+        return "OR";
+      case OperatorChar.XOR:
+        return "XOR";
+      default:
+        throw new Error(`Invalid operator character: ${char}`);
     }
+  }
+
+  private incrementParentheses(): void {
+    this.parenthesesCount += 1;
+  }
+
+  private decrementParentheses(): void {
+    if (this.parenthesesCount === 0) {
+      this.setError(400, "Closing parenthesis without opening");
+      return;
+    }
+    this.parenthesesCount -= 1;
   }
 
   private createPatternNode(
@@ -351,7 +381,7 @@ export class Ae2uelOredicParser extends ErrorProne {
     negation: boolean = false
   ): PatternNode {
     const node: PatternNode = {
-      type: "pattern",
+      type: NodeNames.PATTERN,
       negation: negation,
       children: children,
     };
@@ -373,7 +403,7 @@ export class Ae2uelOredicParser extends ErrorProne {
     for (let i = 0; i < operatorNode.children.length; i++) {
       const child = operatorNode.children[i];
       if (
-        child.type === "operator" &&
+        child.type === NodeNames.OPERATOR &&
         child.operator === topLevelOperator &&
         child.negation === false
       ) {
@@ -504,25 +534,26 @@ export class Ae2uelOredicParser extends ErrorProne {
     node = operatorNode;
   }
 
-  // Conjunction for wildcards: Token(a, wildcard, wildcard, b) = Token(a, wildcard, b)
   private applyWildcardConjunction(node: AstNode): void {
-    if (node.type !== "pattern") return;
+    if (node.type !== NodeNames.PATTERN) return;
     for (let i = 1; i < node.children.length; i++) {
       const lastChild = node.children[i - 1];
       const currChild = node.children[i];
-      if (currChild.type === "wildcard" && lastChild.type === "wildcard") {
+      if (
+        currChild.type === NodeNames.WILDCARD &&
+        lastChild.type === NodeNames.WILDCARD
+      ) {
         node.children.splice(i, 1);
         i -= 1;
       }
     }
   }
 
-  // Helper to check if an operator is in the list of accepted operators
   private operatorAccepted(
     node: AstNode,
     acceptedOperators: Array<"AND" | "OR" | "XOR"> | "all"
   ): boolean {
-    if (node.type === "pattern") return false;
+    if (node.type === NodeNames.PATTERN) return false;
     if (acceptedOperators === "all") return true;
     return acceptedOperators.includes(node.operator);
   }
