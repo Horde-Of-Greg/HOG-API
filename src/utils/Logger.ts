@@ -5,17 +5,18 @@ import { queryTimer } from "./Timer";
 let logger: Logger | null = null;
 
 enum AnsiColor {
-  SUCCESS = "\x1b[32m",
-  INFO = "\x1b[36m",
-  WARN = "\x1b[33m",
   ERROR = "\x1b[31m",
+  SUCCESS = "\x1b[32m",
+  WARN = "\x1b[33m",
+  TELEMETRY = "\x1b[34m",
   DEBUG = "\x1b[35m",
+  INFO = "\x1b[36m",
   FORMAT = "\x1b[37m",
   RESET = "\x1b[0m",
 }
 
 enum FormattingConstant {
-  MAX_TYPE_LENGTH = 7, // "success".length
+  MAX_TYPE_LENGTH = 9, // "success".length
   PROGRESS_BAR_FILLED = "█",
   PROGRESS_BAR_EMPTY = "░",
   FORMATTING_DASH = "-",
@@ -175,6 +176,7 @@ export class Logger {
       warn: AnsiColor.WARN,
       error: AnsiColor.ERROR,
       debug: AnsiColor.DEBUG,
+      telemetry: AnsiColor.TELEMETRY,
       format: AnsiColor.FORMAT,
     };
 

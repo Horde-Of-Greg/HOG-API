@@ -1,81 +1,36 @@
-import { RequestHandler, Request, Response, NextFunction } from "express";
-import { getDbHandler } from "../db/DbHandler";
-import { findDcUsernameById } from "../utils/bot/usernames";
-import { startTimer, stopTimer } from "../utils/Timer";
-import { getLogger } from "../utils/Logger";
+import { Request, Response, NextFunction } from "express";
+import { MembersService } from "../services/members/MembersService";
 
 export class MembersController {
-  dbHandler;
+  private service = new MembersService();
 
-  constructor() {
-    this.dbHandler = getDbHandler();
-  }
+  getIds = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const members = await this.service.getIds();
+      res.data = { ids: members };
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 
-  async getIds() {
-    return await this.dbHandler.getHogMembers();
-  }
+  getUsernames = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const members = await this.service.getUsernames();
+      res.data = { usernames: members };
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 
-  async getUsernames() {
-    const idsList = await this.dbHandler.getHogMembers();
-    const usernamesList = await Promise.all(
-      idsList.map(async (memberId) => {
-        return await findDcUsernameById(memberId);
-      })
-    );
-    return usernamesList;
-  }
-
-  async getUsernamesAndIds() {
-    const idsList = await this.dbHandler.getHogMembers();
-    const idsToUsernames: Record<string, string> = {};
-
-    await Promise.all(
-      idsList.map(async (element) => {
-        const username = await findDcUsernameById(element);
-        if (username) {
-          idsToUsernames[element] = username;
-        } else {
-          idsToUsernames[element] = "unknown";
-        }
-      })
-    );
-
-    return idsToUsernames;
-  }
-
-  handler =
-    (): RequestHandler =>
-    async (req: Request, res: Response, next: NextFunction) => {
-      const endpointConfig = req.endpointConfig;
-
-      if (!endpointConfig) {
-        next(new Error("Endpoint configuration is missing"));
-        return;
-      }
-      const toFetch = endpointConfig.child;
-
-      let members: any;
-      startTimer("members-fetch");
-      try {
-        switch (toFetch) {
-          case "ids":
-            members = await this.getIds();
-            break;
-          case "usernames":
-            members = await this.getUsernames();
-            break;
-          case "usernames-and-ids":
-            members = await this.getUsernamesAndIds();
-            break;
-        }
-        const time_taken_ms = stopTimer("members-fetch").getTime("ms", 0);
-        getLogger().simpleLog(
-          "info",
-          `Served Request on ${endpointConfig.main} in ${time_taken_ms.formatted}`
-        );
-        res.json({ members: members, duration: time_taken_ms.adjusted });
-      } catch (err) {
-        next(err);
-      }
-    };
+  getUsers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const members = await this.service.getUsers();
+      res.data = { users: members };
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 }

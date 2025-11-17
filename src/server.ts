@@ -38,15 +38,16 @@ async function main() {
   const expressApp = initExpress();
 
   expressApp.listen(config.PORT, config.RUNNING_IP, () => {
-    getLogger().formattingLog("Server Ready");
+    getLogger().formattingLog("Server Info");
     getLogger().simpleLog(
       "info",
       `Server is running at http://${config.RUNNING_IP}:${config.PORT}`
     );
     getLogger().simpleLog(
-      "info",
+      "telemetry",
       `Server took ${stopTimer("main").getTime("auto", 3).formatted} to start`
     );
+    getLogger().formattingLog("Server Ready");
   });
 }
 

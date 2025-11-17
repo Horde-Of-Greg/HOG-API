@@ -1,6 +1,6 @@
 import { getGrokClient } from "../../clients/GrokClient";
 import { env } from "../../config/config";
-import { GrokTokenizeReq } from "../../types/grok";
+import { GrokTokenizeReq } from "../../types/ai";
 import { getLogger } from "../Logger";
 
 export async function tokenizeGrok(

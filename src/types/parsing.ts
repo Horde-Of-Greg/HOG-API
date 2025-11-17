@@ -113,4 +113,8 @@ export type Token =
   | { type: NodeNames.TEXT; content: string }
   | { type: NodeNames.WILDCARD };
 
-export type SupportedPack = "nomi-ceu";
+export type Matches = string[];
+
+export type BuildOptions = {
+  shortenedDisjunction: boolean;
+};

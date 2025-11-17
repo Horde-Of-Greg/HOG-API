@@ -1,254 +1,185 @@
 import { DUMPS } from "../../loaders/storage";
-import { Ast, exAst, NodeNames, SupportedPack } from "../../types/parsing";
+import { Ast, NodeNames } from "../../types/parsing";
+import { TimerRes } from "../../types/timer";
 import { getLogger } from "../Logger";
 import { ErrorProne } from "../parentClasses/ErrorProne";
 import { OredicMatcher } from "./OredicMatcher";
-import { startTimer } from "../Timer";
+import { startTimer, stopTimer, queryTimer, Timer } from "../Timer";
+import { OredicPack } from "../../config/routes";
 
 const PROGRESS_UPDATE_INTERVAL = 10;
 
-export class OredicSubstrings extends ErrorProne {
-  private dump: string[];
-  private shortestPatterns: Map<string, string>;
+type TelemetryResults = {
+  result: {
+    string: string;
+    length: number;
+    shortening: number;
+  };
+  timings: TimerRes;
+};
 
-  constructor(private pack: SupportedPack) {
+export class OredicShortener extends ErrorProne {
+  private dump: string[];
+  private matcher: OredicMatcher;
+  private telemetry: Map<string, TelemetryResults>;
+  private shortcuts: Map<string, string>;
+
+  constructor(private pack: OredicPack) {
     super();
     this.dump = this.loadDump();
-    this.shortestPatterns = new Map<string, string>();
-    this.findShortestPatterns();
+    this.matcher = new OredicMatcher(this.pack);
+    this.telemetry = new Map();
+    this.shortcuts = new Map();
   }
 
-  /*
-   * Main processing
-   */
-  simplifyPatterns(ast: Ast) {
-    if (!ast) return null;
+  getShortcuts() {
+    //TODO: Implement caching strategy!!!
 
-    if (ast.type === NodeNames.PATTERN) {
-      for (const child of ast.children) {
-        if (child.type === NodeNames.WILDCARD) continue;
-
-        const newText = this.shortestPatterns.get(child.content);
-
-        if (!newText) continue;
-
-        delete (child as any).content;
-        child.content = newText;
-      }
-      return ast;
+    if (!this.shortcuts) {
+      this.shortcuts = this.findAll();
     }
 
-    for (const child of ast.children) {
-      this.simplifyPatterns(child);
+    if (!this.shortcuts) {
+      throw new Error("Shortcuts didn't generate");
     }
+
+    return this.shortcuts;
   }
 
-  private findShortestPatterns(): void {
-    getLogger().simpleLog(
-      "info",
-      `Finding shortest unique patterns for ${this.pack}`
-    );
-    startTimer("substrings");
+  getTelemetry(): Map<string, TelemetryResults> {
+    return new Map(this.telemetry);
+  }
 
-    for (let position = 0; position < this.dump.length; position++) {
-      const oredicName = this.dump[position];
-      const shortestPattern = this.findShortestUniquePattern(oredicName);
-      this.shortestPatterns.set(oredicName, shortestPattern);
+  private findAll(): Map<string, string> {
+    getLogger().simpleLog("info", `Finding shortest patterns for ${this.pack}`);
+    startTimer("shortening");
 
-      const currentIndex = position + 1;
-      const shouldUpdateProgress =
-        currentIndex % PROGRESS_UPDATE_INTERVAL === 0 ||
-        currentIndex === this.dump.length;
+    const result = new Map<string, string>();
 
-      if (shouldUpdateProgress) {
-        this.updateProgress(currentIndex, this.dump.length);
+    for (let i = 0; i < this.dump.length; i++) {
+      const oredicTimer = new Timer();
+      const oredic = this.dump[i];
+      const pattern = this.findShortest(oredic, i);
+      result.set(oredic, pattern);
+
+      const timerResult = oredicTimer.getTime();
+      this.telemetry.set(oredic, {
+        timings: timerResult,
+        result: {
+          string: pattern,
+          length: pattern.length,
+          shortening: oredic.length - pattern.length,
+        },
+      });
+
+      if (
+        (i + 1) % PROGRESS_UPDATE_INTERVAL === 0 ||
+        i === this.dump.length - 1
+      ) {
+        this.logProgress(i + 1, this.dump.length);
       }
     }
 
+    const time = stopTimer("shortening").getTime();
     getLogger().simpleLog(
       "success",
-      `Found shortest patterns for ${this.dump.length} oredics`
+      `Found ${result.size} patterns in ${time.formatted}`
     );
+
+    return result;
   }
 
-  private findShortestUniquePattern(targetOredic: string): string {
-    const patternGenerators = [
-      () => this.generateSingleCharPatterns(targetOredic),
-      () => this.generateTwoCharPatterns(targetOredic),
-      () => this.generateThreeCharPatterns(targetOredic),
-      () => this.generatePrefixSuffixPatterns(targetOredic),
-      () => [targetOredic],
-    ];
+  private findShortest(oredic: string, oredicIndex: number): string {
+    const maxUsefulLength = oredic.length - 2;
 
-    for (const generator of patternGenerators) {
-      const candidatePatterns = generator();
+    for (let length = 1; length <= maxUsefulLength; length++) {
+      const pattern = this.tryLength(oredic, oredicIndex, length);
+      if (pattern) return pattern;
+    }
 
-      for (const pattern of candidatePatterns) {
-        if (this.isUniqueMatch(pattern, targetOredic)) {
-          return pattern;
-        }
+    return oredic;
+  }
+
+  private tryLength(
+    text: string,
+    oredicIndex: number,
+    length: number
+  ): string | null {
+    return this.tryPositions(text, oredicIndex, length, 0, []);
+  }
+
+  private tryPositions(
+    text: string,
+    oredicIndex: number,
+    remaining: number,
+    start: number,
+    positions: number[]
+  ): string | null {
+    if (remaining === 0) {
+      if (this.hasUselessGaps(positions)) {
+        return null;
+      }
+
+      const pattern = this.buildPattern(text, positions);
+      return this.matcher.isUniqueMatch(pattern, oredicIndex) ? pattern : null;
+    }
+
+    const maxPos = text.length - remaining;
+    for (let pos = start; pos <= maxPos; pos++) {
+      positions.push(pos);
+      const result = this.tryPositions(
+        text,
+        oredicIndex,
+        remaining - 1,
+        pos + 1,
+        positions
+      );
+      if (result) return result;
+      positions.pop();
+    }
+
+    return null;
+  }
+
+  private hasUselessGaps(positions: number[]): boolean {
+    for (let i = 0; i < positions.length - 1; i++) {
+      const gapSize = positions[i + 1] - positions[i] - 1;
+      if (gapSize === 1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private buildPattern(text: string, positions: number[]): string {
+    if (positions.length === 0) return "";
+
+    const parts: string[] = [];
+
+    if (positions[0] > 0) parts.push("*");
+
+    for (let i = 0; i < positions.length; i++) {
+      parts.push(text[positions[i]]);
+
+      if (i < positions.length - 1 && positions[i + 1] > positions[i] + 1) {
+        parts.push("*");
       }
     }
 
-    return targetOredic;
+    if (positions[positions.length - 1] < text.length - 1) parts.push("*");
+
+    return parts.join("");
   }
-
-  /*
-   * Pattern validation
-   */
-
-  private isUniqueMatch(pattern: string, targetOredic: string): boolean {
-    const matcher = new OredicMatcher(pattern, this.pack);
-    const matchingOredics = matcher.match();
-
-    const hasExactlyOneMatch = matchingOredics?.length === 1;
-    const matchesTarget = matchingOredics?.[0] === targetOredic;
-
-    return hasExactlyOneMatch && matchesTarget;
-  }
-
-  /*
-   * Pattern generation
-   */
-
-  private generateSingleCharPatterns(text: string): string[] {
-    const patterns: string[] = [];
-    const lastIndex = text.length - 1;
-
-    for (let index = 0; index < text.length; index++) {
-      const char = text[index];
-      const isFirstChar = index === 0;
-      const isLastChar = index === lastIndex;
-
-      patterns.push(`*${char}*`);
-
-      if (isFirstChar) {
-        patterns.push(`${char}*`);
-      }
-
-      if (isLastChar) {
-        patterns.push(`*${char}`);
-      }
-    }
-
-    return patterns;
-  }
-
-  private generateTwoCharPatterns(text: string): string[] {
-    const patterns: string[] = [];
-
-    this.generateConsecutivePairs(text, patterns);
-    this.generateNonConsecutivePairs(text, patterns);
-
-    return patterns;
-  }
-
-  private generateConsecutivePairs(text: string, patterns: string[]): void {
-    const lastPairIndex = text.length - 2;
-
-    for (let index = 0; index < text.length - 1; index++) {
-      const pair = text.substring(index, index + 2);
-      const isFirstPair = index === 0;
-      const isLastPair = index === lastPairIndex;
-
-      patterns.push(`*${pair}*`);
-
-      if (isFirstPair) {
-        patterns.push(`${pair}*`);
-      }
-
-      if (isLastPair) {
-        patterns.push(`*${pair}`);
-      }
-    }
-  }
-
-  private generateNonConsecutivePairs(text: string, patterns: string[]): void {
-    const lastIndex = text.length - 1;
-
-    for (let firstIndex = 0; firstIndex < text.length - 1; firstIndex++) {
-      const firstChar = text[firstIndex];
-
-      for (
-        let secondIndex = firstIndex + 2;
-        secondIndex < text.length;
-        secondIndex++
-      ) {
-        const secondChar = text[secondIndex];
-        const isAtBoundary = firstIndex > 0 || secondIndex < lastIndex;
-
-        patterns.push(`${firstChar}*${secondChar}`);
-
-        if (isAtBoundary) {
-          patterns.push(`*${firstChar}*${secondChar}*`);
-        }
-      }
-    }
-  }
-
-  private generateThreeCharPatterns(text: string): string[] {
-    const patterns: string[] = [];
-    const lastTripletIndex = text.length - 3;
-
-    for (let index = 0; index < text.length - 2; index++) {
-      const triplet = text.substring(index, index + 3);
-      const isFirstTriplet = index === 0;
-      const isLastTriplet = index === lastTripletIndex;
-
-      patterns.push(`*${triplet}*`);
-
-      if (isFirstTriplet) {
-        patterns.push(`${triplet}*`);
-      }
-
-      if (isLastTriplet) {
-        patterns.push(`*${triplet}`);
-      }
-    }
-
-    return patterns;
-  }
-
-  private generatePrefixSuffixPatterns(text: string): string[] {
-    const patterns: string[] = [];
-
-    for (let length = 4; length < text.length; length++) {
-      const prefix = text.substring(0, length);
-      const suffixStartIndex = text.length - length;
-      const suffix = text.substring(suffixStartIndex);
-
-      patterns.push(`${prefix}*`);
-      patterns.push(`*${suffix}`);
-    }
-
-    return patterns;
-  }
-
-  /*
-   * Utility methods
-   */
 
   private loadDump(): string[] {
     const dumpContent = DUMPS.get(this.pack);
-
     if (!dumpContent) {
       throw new Error(`Failed to load oredic dump for pack: ${this.pack}`);
     }
-
     return dumpContent.split("\n");
   }
 
-  private updateProgress(currentCount: number, totalCount: number): void {
-    const PROGRESS_BAR_WIDTH = 50;
-    const TIMER_ID = "substrings";
-    const PROGRESS_LABEL = "Processing oredics";
-
-    getLogger().progressBar(
-      currentCount,
-      totalCount,
-      TIMER_ID,
-      PROGRESS_BAR_WIDTH,
-      PROGRESS_LABEL
-    );
+  private logProgress(current: number, total: number): void {
+    getLogger().progressBar(current, total, "shortening", 50, "Processing");
   }
 }

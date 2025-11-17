@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { filtersConfig } from "../config/config";
-import { FILTERS } from "../loaders/filters";
-import { getLogger } from "../utils/Logger";
-import { getDbHandler } from "../db/DbHandler";
+import { filtersConfig } from "../../config/config";
+import { FILTERS } from "../../loaders/filters";
+import { getLogger } from "../../utils/Logger";
+import { getDbHandler } from "../../db/DbHandler";
 
 //TODO: Make the config a map for Severity -> Action, and handle that.
 export const filterBody = async (
@@ -12,16 +12,14 @@ export const filterBody = async (
 ): Promise<void> => {
   const prompt = req.body.prompt;
   const context = req.body.context;
-  const endpointConfig = req.endpointConfig?.config;
-  const endpointName = endpointConfig?.endpointName;
-  if (!endpointName) {
-    res.status(500).json("no endpoint name, this shouldn't ever happen...");
+  const aiModel = req.ai?.model;
+
+  if (!aiModel) {
+    res.status(500).json("AI model not found");
     return;
   }
-  const username = await getDbHandler().getUsername(
-    req.body.userId,
-    endpointName
-  );
+
+  const username = await getDbHandler().getUsername(req.body.userId, aiModel);
 
   switch (filtersConfig.grok.filterAction) {
     case "warn":

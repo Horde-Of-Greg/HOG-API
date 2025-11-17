@@ -1,8 +1,13 @@
-import { SystemPromptChoice } from "./grok";
+import { SystemPrompt } from "../config/routes";
 import { EndpointConfig as ConfigEndpointConfig } from "../config/schema";
-import { PathLike } from "fs";
 
-export type LogType = "success" | "info" | "warn" | "error" | "debug";
+export type LogType =
+  | "success"
+  | "info"
+  | "warn"
+  | "error"
+  | "debug"
+  | "telemetry";
 
 export type Filter = {
   pattern: RegExp;
@@ -27,7 +32,7 @@ export type EndpointConfig = {
 
 export type RequestEndpointConfig = {
   endpointName: string;
-  systemPrompt: SystemPromptChoice;
+  systemPrompt: SystemPrompt;
   model: string;
   maxPromptTokens: number;
   maxContextTokens: number;

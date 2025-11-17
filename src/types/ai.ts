@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const GrokInputDataSchema = z.object({
+export const AiInputDataSchema = z.object({
   userId: z.string().min(1, "userId cannot be empty"),
   prompt: z
     .string()
@@ -9,9 +9,7 @@ export const GrokInputDataSchema = z.object({
   context: z.string().max(5000, "context too long"),
   attachment: z.url("attachment must be a valid URL").nullable(),
 });
-export type GrokInputData = z.infer<typeof GrokInputDataSchema>;
-
-export type SystemPromptChoice = "default" | "hogichan" | "nomicord";
+export type AiInputData = z.infer<typeof AiInputDataSchema>;
 
 export type ModelChoice = "grok-3-mini" | "grok-4-0709";
 

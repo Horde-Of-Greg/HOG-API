@@ -1,3 +1,5 @@
+import { TimerRes } from "../types/timer";
+
 let timers: Map<string, Timer> = new Map();
 
 export class Timer {
@@ -10,11 +12,7 @@ export class Timer {
   getTime(
     unit: "micro" | "ms" | "s" | "m" | "auto" = "auto",
     precision: number = 2
-  ): {
-    raw: number;
-    adjusted: number;
-    formatted: string;
-  } {
+  ): TimerRes {
     const timeTaken_ms = performance.now() - this.startTime;
     let adjustedTime: number = 0;
     let unitLabel: string = "";

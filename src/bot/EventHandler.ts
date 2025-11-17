@@ -49,7 +49,7 @@ export class BotEventHandler {
     const memberId = member.id;
     this.dbHandler.addToHog(memberId);
     getLogger().simpleLog(
-      "info",
+      "telemetry",
       `${await findDcUsernameById(memberId)} joined ${
         config.DISCORD_SERVER_NAME
       }`

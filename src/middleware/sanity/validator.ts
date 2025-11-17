@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ZodError, ZodObject } from "zod";
-import { getLogger } from "../utils/Logger";
+import { getLogger } from "../../utils/Logger";
 
 export const zodValidator = (schema: ZodObject<any>) => {
   return (req: Request, res: Response, next: NextFunction) => {

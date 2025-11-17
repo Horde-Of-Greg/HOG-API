@@ -1,8 +1,19 @@
 import { ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat/completions";
-import { GrokController } from "../../controllers/GrokController";
-import { GrokInputData, SystemPromptChoice } from "../../types/grok";
+import { AiInputData } from "../../types/ai";
+import { SystemPrompt } from "../../config/routes";
 import { findDcUsernameById } from "../bot/usernames";
 import { getDbHandler } from "../../db/DbHandler";
+import {
+  DEFAULT_PROMPT,
+  HOGICHAN_PROMPT,
+  NOMICORD_PROMPT,
+} from "../../loaders/storage";
+
+const SYSTEM_PROMPTS = {
+  default: DEFAULT_PROMPT,
+  hogichan: HOGICHAN_PROMPT,
+  nomicord: NOMICORD_PROMPT,
+} as const;
 
 export function formatQuestion(
   discordUsername: string,
@@ -21,22 +32,22 @@ function filter(text: string, discordUsername: string) {
 }
 
 export async function formatCompletion(
-  reqBody: GrokInputData,
+  reqBody: AiInputData,
   model: string,
-  type: SystemPromptChoice,
-  endpointName: string
+  type: SystemPrompt,
+  modelName: string
 ): Promise<ChatCompletionCreateParamsNonStreaming> {
   const completion: ChatCompletionCreateParamsNonStreaming = {
     model: model,
     messages: [
       {
         role: "system",
-        content: GrokController.systemPromptMappings[type],
+        content: SYSTEM_PROMPTS[type],
       },
       {
         role: "user",
         content: formatQuestion(
-          await getDbHandler().getUsername(reqBody.userId, endpointName),
+          await getDbHandler().getUsername(reqBody.userId, modelName),
           reqBody.prompt,
           reqBody.context
         ),

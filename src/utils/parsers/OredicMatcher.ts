@@ -1,7 +1,7 @@
+import { OredicPack } from "../../config/routes";
 import { DUMPS } from "../../loaders/storage";
 import {
   AstNode,
-  SupportedPack,
   exAst,
   RegexNode,
   OredicNode,
@@ -10,6 +10,8 @@ import {
   exXorNode,
   PatternNode,
   NodeNames,
+  exAstNode,
+  Matches,
 } from "../../types/parsing";
 import { ErrorProne } from "../parentClasses/ErrorProne";
 import { OredicParser } from "./OredicParser";
@@ -21,41 +23,66 @@ const EMPTY_OREDIC_NODE: OredicNode = {
 } as const;
 
 export class OredicMatcher extends ErrorProne {
-  private validOredics: string[] | null;
-  private ast: exAst;
   private parser: OredicParser;
+  private dump: string[];
 
-  constructor(
-    rules: AstNode | PatternNode | RegexNode | OredicNode | string,
-    private pack: SupportedPack
-  ) {
+  constructor(private pack: OredicPack) {
     super();
-    this.pack = "nomi-ceu";
     this.parser = new OredicParser();
-    this.ast = this.parseInputRules(rules);
-    this.validOredics = null;
+    const dump = DUMPS.get(this.pack);
+    this.dump = dump ? dump.split("\n") : [];
   }
 
-  private parseInputRules(
-    rules: AstNode | RegexNode | OredicNode | string
-  ): exAst {
-    if (typeof rules === "string") {
-      const parseResult = this.parser.parse(rules);
-      const isErrorResult =
-        !parseResult || (parseResult as any).type === "error";
-      return isErrorResult ? null : (parseResult as AstNode);
-    }
-
-    return rules;
+  match(rules: exAstNode): Matches | null {
+    return this.parse(rules);
   }
 
-  match(): string[] | null {
-    if (this.validOredics !== null) {
-      return this.validOredics;
+  isUniqueMatch(pattern: string, targetIndex: number): boolean {
+    if (targetIndex < 0 || targetIndex >= this.dump.length) {
+      return false;
     }
 
-    this.validOredics = this.parse(this.ast);
-    return this.validOredics;
+    const target = this.dump[targetIndex];
+    const regex = this.buildRegexFromPattern(pattern);
+
+    if (!regex.test(target)) {
+      return false;
+    }
+
+    const maxRadius = 128;
+    for (let radius = 1; radius <= maxRadius; radius *= 2) {
+      for (let offset = -radius; offset <= radius; offset++) {
+        const checkIndex = targetIndex + offset;
+
+        if (
+          checkIndex === targetIndex ||
+          checkIndex < 0 ||
+          checkIndex >= this.dump.length
+        ) {
+          continue;
+        }
+
+        regex.lastIndex = 0;
+        if (regex.test(this.dump[checkIndex])) {
+          return false;
+        }
+      }
+    }
+
+    for (let i = 0; i < this.dump.length; i++) {
+      const distance = Math.abs(i - targetIndex);
+
+      if (distance <= maxRadius || i === targetIndex) {
+        continue;
+      }
+
+      regex.lastIndex = 0;
+      if (regex.test(this.dump[i])) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /*
@@ -300,6 +327,19 @@ export class OredicMatcher extends ErrorProne {
     }
 
     return this.newOredicNode(newChildren);
+  }
+
+  private buildRegexFromPattern(pattern: string): RegExp {
+    let regexPattern = "^";
+    for (let i = 0; i < pattern.length; i++) {
+      if (pattern[i] === "*") {
+        regexPattern += ".+";
+      } else {
+        regexPattern += pattern[i];
+      }
+    }
+    regexPattern += "$";
+    return new RegExp(regexPattern);
   }
 
   private newOredicNode(children: string[] | null): OredicNode {

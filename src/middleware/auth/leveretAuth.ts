@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { config } from "../config/config";
+import { config } from "../../config/config";
 import { createHash, verify } from "crypto";
-import { LEVERET_PUBLIC_KEY } from "../loaders/keys";
-import { getLogger } from "../utils/Logger";
+import { LEVERET_PUBLIC_KEY } from "../../loaders/keys";
+import { getLogger } from "../../utils/Logger";
 
 export const leveretAuth = (
   req: Request,
@@ -16,6 +16,8 @@ export const leveretAuth = (
     res.status(401).json({ error: "Unauthorized" });
     return;
   }
+  getLogger().simpleLog("telemetry", "Authorized Leveret Request");
+  req.flags = { isLeveret: true };
   next();
 };
 

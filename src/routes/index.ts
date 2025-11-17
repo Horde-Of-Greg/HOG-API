@@ -1,30 +1,20 @@
 import { Router } from "express";
-import { grokRoutes } from "./leveret/grok/grok";
-import { leveretRoutes } from "./leveret/leveret";
-import { leveretAuth } from "../middleware/leveretAuth";
-import { jsonWithRawBody } from "../middleware/jsonWithRawBody";
-import { initEndpointHandler } from "../utils/Endpoint";
-import { setEndpointData } from "../middleware/setEndpointData";
-import { dataRoutes } from "./data/data";
-import { utilRoutes } from "./util/util";
+import { timerStart, timerStop } from "../middleware/analytics/perf/timer";
+import { cleanup } from "../middleware/sanity/cleanup";
+import { aiRoutes } from "./ai";
+import { membersRoutes } from "./members";
+import { oredicRoutes } from "./oredic";
+import { loadEndpoint } from "../middleware/endpoints/loadEndpoint";
 
 export function routes() {
   const router = Router();
-  router.use(
-    "/leveret",
-    jsonWithRawBody(),
-    setEndpointData("source", "leveret"),
-    leveretAuth,
-    leveretRoutes()
-  );
 
-  router.use("/data", setEndpointData("source", "data"), dataRoutes());
+  router.use(timerStart);
+  router.use(loadEndpoint);
 
-  router.use(
-    "/util",
-    jsonWithRawBody(),
-    setEndpointData("source", "util"),
-    utilRoutes()
-  );
+  router.use("/ai", aiRoutes());
+  router.use("/members", membersRoutes());
+  router.use("/oredic", oredicRoutes());
+
   return router;
 }

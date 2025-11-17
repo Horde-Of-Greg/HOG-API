@@ -1,29 +1,22 @@
-import { RequestHandler, Request, Response, NextFunction } from "express";
-import { OredicParser } from "../utils/parsers/OredicParser";
-import { OredicMatcher } from "../utils/parsers/OredicMatcher";
+import { Request, Response, NextFunction } from "express";
+import { OredicService } from "../services/oredic/OredicService";
 
 export class OredicController {
-  constructor() {}
+  private service = new OredicService();
 
-  async answer(req: Request) {
-    const Parser = new OredicParser();
-    const rules = Parser.parse(req.body.string);
-    if (!rules) {
-      // Catch unknown error
-      return;
-    }
-    if (rules.type === "error") {
-      // Catch error according to the metadata
-      return;
+  simplify = async (req: Request, res: Response, next: NextFunction) => {
+    const { pack, action } = req.oredic || {};
+
+    if (!pack || !action) {
+      return next(new Error("Pack or action is missing"));
     }
 
-    const Matcher = new OredicMatcher(rules, "nomi-ceu");
-    return Matcher.match();
-  }
-
-  handler =
-    (): RequestHandler =>
-    async (req: Request, res: Response, next: NextFunction) => {
-      res.json({ ast: await this.answer(req) });
-    };
+    try {
+      const result = await this.service.simplify(req.body.string, pack);
+      res.data = { ast: result.data };
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
 }

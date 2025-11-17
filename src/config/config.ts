@@ -9,7 +9,7 @@ import {
 } from "./validate";
 import { RAW_CONFIG, RAW_FILTERS_CONFIG } from "../loaders/storage";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 export const env: Env = validateEnvs();
 export const config: Config = validateConfigs(RAW_CONFIG);
