@@ -1,58 +1,103 @@
 import { OredicParser } from "../../utils/parsers/OredicParser";
 import { OredicMatcher } from "../../utils/parsers/OredicMatcher";
 import { OredicPack } from "../../config/routes";
-import { Ast } from "../../types/parsing";
+import { AstNode, BuildOptions, OredicMatches } from "../../types/parsing";
 import { StandardError } from "../../types/errors";
+import { ErrorProne } from "../../utils/parentClasses/ErrorProne";
+import { OredicBuilder } from "../../utils/parsers/OredicBuilder";
 
-type OredicResult = {
-  type: "success" | "error";
-  data?: any;
-  error?: string;
-};
+export class OredicService extends ErrorProne {
+  constructor(private pack: OredicPack) {
+    super("OredicService");
+  }
 
-export class OredicService {
-  private parser = new OredicParser();
+  private parser = new OredicParser(this.pack);
+  private matcher = new OredicMatcher(this.pack);
+  private builder = new OredicBuilder(this.pack);
 
-  async simplify(input: string, pack: OredicPack): Promise<OredicResult> {
-    const parseResult = this.parse(input);
-
+  async parse(input: string): Promise<AstNode | StandardError> {
+    const parseResult = this.parser.parse(input);
     if (!parseResult) {
-      return {
-        type: "error",
-        error: "Failed to parse input",
-      };
+      return this.setError(
+        500,
+        "Unknown Error: Could not parse input",
+        "parse"
+      );
     }
-
-    if ((parseResult as StandardError).type === "error") {
-      const error = parseResult as StandardError;
-      return {
-        type: "error",
-        error: error.message || "Parse error",
-      };
-    }
-
-    try {
-      const ast = parseResult as Ast;
-      const result = this.match(ast, pack);
-      return {
-        type: "success",
-        data: result,
-      };
-    } catch (error) {
-      return {
-        type: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-    }
+    return parseResult;
   }
 
-  private parse(input: string): Ast | StandardError {
-    return this.parser.parse(input);
+  async match(ast: AstNode): Promise<OredicMatches | StandardError> {
+    const matchResult = this.matcher.match(ast);
+    return matchResult;
   }
 
-  private match(ast: Ast, pack: OredicPack) {
-    if (!ast) throw new Error("AST is null");
-    const matcher = new OredicMatcher(pack);
-    return matcher.match(ast);
+  async buildAsts(
+    matches: OredicMatches,
+    options: BuildOptions
+  ): Promise<AstNode[] | StandardError> {
+    const builtAst = this.builder.buildFromMatches(matches, options);
+    return builtAst;
+  }
+
+  async buildSingleAst(
+    matches: OredicMatches,
+    options: BuildOptions
+  ): Promise<AstNode | StandardError> {
+    let optionsCount = 0;
+
+    for (const option in options) {
+      if (options[option as keyof BuildOptions] === true) {
+        optionsCount += 1;
+      }
+    }
+
+    if (optionsCount !== 1) {
+      return this.setError(
+        400,
+        "Must select one and only one way to build the ast.",
+        "buildSingleAst"
+      );
+    }
+
+    const builtAst = this.builder.buildFromMatches(matches, options);
+
+    if (this.isError(builtAst)) {
+      return this.propagateError(
+        builtAst,
+        "Failed to build AST",
+        "buildSingleAst"
+      );
+    }
+
+    if (builtAst.length === 0) {
+      return this.setError(400, "No AST was built", "buildSingleAst");
+    }
+
+    return builtAst[0];
+  }
+
+  async build(ast: AstNode): Promise<string | StandardError> {
+    return this.builder.buildFromAst(ast);
+  }
+
+  async buildAndFindBest(asts: AstNode[]): Promise<string | StandardError> {
+    let candidates: string[] = [];
+
+    for (const ast of asts) {
+      const candidate = this.builder.buildFromAst(ast);
+
+      if (this.isError(candidate)) {
+        return this.propagateError(
+          candidate,
+          "Failed to find best string from Ast"
+        );
+      }
+
+      candidates.push(candidate);
+    }
+
+    candidates = candidates.sort((a, b) => a.length - b.length);
+    return candidates[0];
   }
 }

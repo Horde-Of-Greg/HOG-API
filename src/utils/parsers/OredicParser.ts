@@ -3,9 +3,9 @@
  * https://github.com/AE2-UEL/Applied-Energistics-2/blob/26bb5986c636e9bdde62559b0d1c2bbc48c4b9e3/src/main/java/appeng/util/item/OreDictFilterMatcher.java#L11
  */
 
+import { OredicPack } from "../../config/routes";
 import { StandardError } from "../../types/errors";
 import {
-  Ast,
   AstNode,
   PatternNode,
   OperatorNode,
@@ -15,17 +15,25 @@ import {
   NodeNames,
   LexemeElement,
   LexemeNames,
-  ParseState,
+  LexicalParseResult,
 } from "../../types/parsing";
 import { ErrorProne } from "../parentClasses/ErrorProne";
+
+type ParseState = {
+  ast: AstNode | null;
+  tokenBuffer: Token[];
+  operandBuffer: AstNode[];
+  currentOperator: "AND" | "XOR" | "OR" | null;
+  negationFlag: boolean;
+};
 
 export class OredicParser extends ErrorProne {
   private lexemeBuffer: string;
   private parenthesesCount: number;
   private optimizationPipeline: Array<(node: AstNode) => void>;
 
-  constructor() {
-    super();
+  constructor(private pack: OredicPack) {
+    super("OredicParser");
     this.lexemeBuffer = "";
     this.parenthesesCount = 0;
 
@@ -37,17 +45,24 @@ export class OredicParser extends ErrorProne {
     ];
   }
 
-  parse(input: string): Ast | StandardError {
+  parse(input: string): AstNode | StandardError {
     this.resetState();
 
     const { lexemeList } = this.lexicalParse(input.split(""));
 
     if (this.parenthesesCount !== 0) {
-      this.setError(400, "Unbalanced parentheses");
-      return this.error;
+      return this.setError(400, "Unbalanced parentheses", "parse");
     }
 
     const ast = this.parseNode(lexemeList);
+
+    if (this.isError(ast)) {
+      return this.propagateError(ast, "Failed to parse node", "parse");
+    }
+
+    if (!ast) {
+      return this.setError(400, "Failed to parse input", "parse");
+    }
 
     if (this.error.status) {
       return this.error;
@@ -140,7 +155,7 @@ export class OredicParser extends ErrorProne {
     return { lexemeList, consumed: pattern.length };
   }
 
-  private parseNode(lexemeList: LexemeElement[]): Ast {
+  private parseNode(lexemeList: LexemeElement[]): AstNode | null {
     if (this.error.status) {
       return null;
     }
@@ -158,17 +173,17 @@ export class OredicParser extends ErrorProne {
         case "group":
           const subLexeme = lexemeList[i].content;
           if (typeof subLexeme === "string" || !subLexeme) {
-            this.setError(400, "Invalid group content");
+            this.setError(400, "Invalid group content", "parseNode");
             return null;
           }
-          const subAst: Ast = this.parseNode(subLexeme);
+          const subAst: AstNode | null = this.parseNode(subLexeme);
 
           if (this.error.status) {
             return null;
           }
 
           if (!subAst) {
-            this.setError(400, "Failed to parse group");
+            this.setError(400, "Failed to parse group", "parseNode");
             return null;
           }
 
@@ -188,7 +203,7 @@ export class OredicParser extends ErrorProne {
         case "operator":
           const operator = lexemeList[i].content;
           if (operator !== "AND" && operator !== "OR" && operator !== "XOR") {
-            this.setError(400, "Invalid operator");
+            this.setError(400, "Invalid operator", "parseNode");
             return null;
           }
 
@@ -203,7 +218,11 @@ export class OredicParser extends ErrorProne {
 
         case "negation":
           if (state.tokenBuffer.length !== 0) {
-            this.setError(400, "Negation must come before pattern tokens");
+            this.setError(
+              400,
+              "Negation must come before pattern tokens",
+              "parseNode"
+            );
             return null;
           }
           state.negationFlag = !state.negationFlag;
@@ -216,7 +235,7 @@ export class OredicParser extends ErrorProne {
         case "text":
           const content = lexemeList[i].content;
           if (typeof content !== "string") {
-            this.setError(400, "Invalid text content");
+            this.setError(400, "Invalid text content", "parseNode");
             return null;
           }
           state.tokenBuffer.push({ type: NodeNames.TEXT, content: content });
@@ -227,13 +246,13 @@ export class OredicParser extends ErrorProne {
     return this.flushEnd(state);
   }
 
-  private flattenAst(ast: Ast): void {
+  private flattenAst(ast: AstNode): void {
     if (!ast) {
       return;
     }
 
     let currentAst = ast;
-    let previousAst: Ast = null;
+    let previousAst: AstNode | null = null;
 
     while (JSON.stringify(currentAst) !== JSON.stringify(previousAst)) {
       previousAst = JSON.parse(JSON.stringify(currentAst));
@@ -318,7 +337,7 @@ export class OredicParser extends ErrorProne {
     state.operandBuffer = [];
   }
 
-  private flushEnd(state: ParseState): Ast {
+  private flushEnd(state: ParseState): AstNode | null {
     if (state.tokenBuffer.length > 0) {
       const pattern = this.createPatternNode(
         state.tokenBuffer,
@@ -370,7 +389,11 @@ export class OredicParser extends ErrorProne {
 
   private decrementParentheses(): void {
     if (this.parenthesesCount === 0) {
-      this.setError(400, "Closing parenthesis without opening");
+      this.setError(
+        400,
+        "Closing parenthesis without opening",
+        "decrementParentheses"
+      );
       return;
     }
     this.parenthesesCount -= 1;

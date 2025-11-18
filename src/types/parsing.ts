@@ -29,25 +29,54 @@ export enum NodeNames {
   WILDCARD = "wildcard",
 }
 
-export type ParseState = {
-  ast: Ast;
-  tokenBuffer: Token[];
-  operandBuffer: AstNode[];
-  currentOperator: "AND" | "XOR" | "OR" | null;
-  negationFlag: boolean;
-};
-
-export type Ast = AstNode | null;
-export type exAst = exAstNode | null;
-
 export type AstNode = PatternNode | OperatorNode;
-export type exAstNode = RegexNode | OredicNode | exOperatorNode | AstNode;
+export type MatcherNode =
+  | RegexNode
+  | OredicNode
+  | MatcherOperatorNode
+  | AstNode;
 
 export type OperatorNode = AndNode | OrNode | XorNode;
+export type MatcherOperatorNode =
+  | MatcherAndNode
+  | MatcherOrNode
+  | MatcherXorNode;
 
-export type LexemeElement = {
-  type: LexemeNames;
-  content: LexemeElement[] | string | null;
+export type LexemeElement =
+  | TextLexeme
+  | OperatorLexeme
+  | NegationLexeme
+  | WildcardLexeme
+  | GroupLexeme;
+
+export type TextLexeme = {
+  type: LexemeNames.TEXT;
+  content: string;
+};
+
+export type OperatorLexeme = {
+  type: LexemeNames.OPERATOR;
+  content: "AND" | "OR" | "XOR";
+};
+
+export type NegationLexeme = {
+  type: LexemeNames.NEGATION;
+  content: null;
+};
+
+export type WildcardLexeme = {
+  type: LexemeNames.WILDCARD;
+  content: null;
+};
+
+export type GroupLexeme = {
+  type: LexemeNames.GROUP;
+  content: LexemeElement[];
+};
+
+export type LexicalParseResult = {
+  lexemes: LexemeElement[];
+  consumed: number;
 };
 
 export type AndNode = {
@@ -69,25 +98,23 @@ export type XorNode = {
   children: Array<AstNode>;
 };
 
-export type exOperatorNode = exAndNode | exOrNode | exXorNode;
-
-export type exAndNode = {
+export type MatcherAndNode = {
   type: NodeNames.OPERATOR;
   operator: "AND";
   negation: boolean;
-  children: Array<exAstNode>;
+  children: Array<MatcherNode>;
 };
-export type exOrNode = {
+export type MatcherOrNode = {
   type: NodeNames.OPERATOR;
   operator: "OR";
   negation: boolean;
-  children: Array<exAstNode>;
+  children: Array<MatcherNode>;
 };
-export type exXorNode = {
+export type MatcherXorNode = {
   type: NodeNames.OPERATOR;
   operator: "XOR";
   negation: boolean;
-  children: Array<exAstNode>;
+  children: Array<MatcherNode>;
 };
 
 export type PatternNode = {
@@ -113,7 +140,7 @@ export type Token =
   | { type: NodeNames.TEXT; content: string }
   | { type: NodeNames.WILDCARD };
 
-export type Matches = string[];
+export type OredicMatches = string[];
 
 export type BuildOptions = {
   shortenedDisjunction: boolean;

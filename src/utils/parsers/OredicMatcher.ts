@@ -1,17 +1,17 @@
 import { OredicPack } from "../../config/routes";
 import { DUMPS } from "../../loaders/storage";
+import { StandardError } from "../../types/errors";
 import {
   AstNode,
-  exAst,
   RegexNode,
   OredicNode,
-  exAndNode,
-  exOrNode,
-  exXorNode,
   PatternNode,
   NodeNames,
-  exAstNode,
-  Matches,
+  MatcherNode,
+  MatcherAndNode,
+  MatcherOrNode,
+  MatcherXorNode,
+  OredicMatches,
 } from "../../types/parsing";
 import { ErrorProne } from "../parentClasses/ErrorProne";
 import { OredicParser } from "./OredicParser";
@@ -27,14 +27,20 @@ export class OredicMatcher extends ErrorProne {
   private dump: string[];
 
   constructor(private pack: OredicPack) {
-    super();
-    this.parser = new OredicParser();
+    super("OredicMatcher");
+    this.parser = new OredicParser(pack);
     const dump = DUMPS.get(this.pack);
-    this.dump = dump ? dump.split("\n") : [];
+    this.dump = dump
+      ? dump.split("\n").filter((line) => line.trim() !== "")
+      : [];
   }
 
-  match(rules: exAstNode): Matches | null {
-    return this.parse(rules);
+  match(rules: AstNode): OredicMatches | StandardError {
+    const result = this.parse(rules);
+    if (result === null) {
+      return this.setError(500, "Failed to match oredics", "match");
+    }
+    return result;
   }
 
   isUniqueMatch(pattern: string, targetIndex: number): boolean {
@@ -89,7 +95,7 @@ export class OredicMatcher extends ErrorProne {
    * AST transformation pipeline
    */
 
-  private parse(ast: exAst): string[] | null {
+  private parse(ast: MatcherNode | null): string[] | null {
     this.parsePatterns(ast);
     this.parseRegexes(ast);
     const finalNode = this.parseOredics(ast);
@@ -97,7 +103,7 @@ export class OredicMatcher extends ErrorProne {
     return finalNode.children;
   }
 
-  private parsePatterns(ast: exAst): void {
+  private parsePatterns(ast: MatcherNode | null): void {
     if (!ast || ast.type === "regex" || ast.type === "oredic") return;
 
     if (ast.type === "pattern") {
@@ -112,7 +118,7 @@ export class OredicMatcher extends ErrorProne {
     }
   }
 
-  private parseRegexes(ast: exAst): void {
+  private parseRegexes(ast: MatcherNode | null): void {
     if (!ast || ast.type === "pattern" || ast.type === "oredic") return;
 
     if (ast.type === "regex") {
@@ -132,7 +138,7 @@ export class OredicMatcher extends ErrorProne {
     }
   }
 
-  private parseOredics(ast: exAst): OredicNode | null {
+  private parseOredics(ast: MatcherNode | null): OredicNode | null {
     if (!ast) return null;
 
     if (ast.type === "oredic") return ast;
@@ -140,7 +146,8 @@ export class OredicMatcher extends ErrorProne {
     if (ast.type !== "operator") {
       this.setError(
         500,
-        "Unknown Error: Got something else than Oredic and Operator Nodes in the final parse"
+        "Unknown Error: Got something else than Oredic and Operator Nodes in the final parse",
+        "parseOredics"
       );
       return null;
     }
@@ -210,7 +217,7 @@ export class OredicMatcher extends ErrorProne {
     return this.newOredicNode(oredicList);
   }
 
-  private applyConjunction(node: exAndNode): OredicNode {
+  private applyConjunction(node: MatcherAndNode): OredicNode {
     const occurences = new Map<string, number>();
     const toRemove = new Set<string>();
     let newChildren: string[] = [];
@@ -220,7 +227,8 @@ export class OredicMatcher extends ErrorProne {
       if (child.type !== "oredic") {
         this.setError(
           500,
-          "Unknown Error: Tried to apply conjunction on something else than an oredic node"
+          "Unknown Error: Tried to apply conjunction on something else than an oredic node",
+          "applyConjunction"
         );
         return this.newOredicNode(null);
       }
@@ -248,7 +256,8 @@ export class OredicMatcher extends ErrorProne {
     if (nonNegatedCount === 0) {
       this.setError(
         500,
-        "AND operation requires at least one non-negated child"
+        "AND operation requires at least one non-negated child",
+        "applyConjunction"
       );
       return this.newOredicNode(null);
     }
@@ -262,14 +271,15 @@ export class OredicMatcher extends ErrorProne {
     return this.newOredicNode(newChildren);
   }
 
-  private applyDisjunction(node: exOrNode): OredicNode {
+  private applyDisjunction(node: MatcherOrNode): OredicNode {
     let newChildren: string[] = [];
 
     for (const child of node.children) {
       if (child.type !== "oredic") {
         this.setError(
           500,
-          "Unknown Error: Tried to apply disjunction on something else than an oredic node"
+          "Unknown Error: Tried to apply disjunction on something else than an oredic node",
+          "applyDisjunction"
         );
         return this.newOredicNode(null);
       }
@@ -283,7 +293,7 @@ export class OredicMatcher extends ErrorProne {
     return this.newOredicNode(newChildren);
   }
 
-  private applyExclusiveDisjunction(node: exXorNode): OredicNode {
+  private applyExclusiveDisjunction(node: MatcherXorNode): OredicNode {
     const occurences = new Map<string, number>();
     let newChildren: string[] = [];
 
@@ -291,7 +301,8 @@ export class OredicMatcher extends ErrorProne {
       if (child.type !== "oredic") {
         this.setError(
           500,
-          "Unknown Error: Tried to apply xor on something else than an oredic node"
+          "Unknown Error: Tried to apply xor on something else than an oredic node",
+          "applyExclusiveDisjunction"
         );
         return this.newOredicNode(null);
       }

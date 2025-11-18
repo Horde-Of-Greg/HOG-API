@@ -13,3 +13,5 @@ ecosystem.config.js
 dist/
 
 src/local/
+
+storage/oredic/dumps/*.txt

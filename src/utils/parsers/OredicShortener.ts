@@ -1,5 +1,6 @@
 import { DUMPS } from "../../loaders/storage";
-import { Ast, NodeNames } from "../../types/parsing";
+import { AstNode, NodeNames } from "../../types/parsing";
+import { StandardError } from "../../types/errors";
 import { TimerRes } from "../../types/timer";
 import { getLogger } from "../Logger";
 import { ErrorProne } from "../parentClasses/ErrorProne";
@@ -25,22 +26,22 @@ export class OredicShortener extends ErrorProne {
   private shortcuts: Map<string, string>;
 
   constructor(private pack: OredicPack) {
-    super();
+    super("OredicShortener");
     this.dump = this.loadDump();
     this.matcher = new OredicMatcher(this.pack);
     this.telemetry = new Map();
     this.shortcuts = new Map();
   }
 
-  getShortcuts() {
+  getShortcuts(): Map<string, string> | StandardError {
     //TODO: Implement caching strategy!!!
 
-    if (!this.shortcuts) {
-      this.shortcuts = this.findAll();
-    }
-
-    if (!this.shortcuts) {
-      throw new Error("Shortcuts didn't generate");
+    if (this.shortcuts.size === 0) {
+      const result = this.findAll();
+      if (this.isError(result)) {
+        return this.propagateError(result, "Failed to generate shortcuts", "getShortcuts");
+      }
+      this.shortcuts = result;
     }
 
     return this.shortcuts;
