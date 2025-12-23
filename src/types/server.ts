@@ -1,22 +1,13 @@
-import { SystemPrompt } from "../config/routes";
-import { EndpointConfig as ConfigEndpointConfig } from "../config/schema";
-
-export type LogType =
-  | "success"
-  | "info"
-  | "warn"
-  | "error"
-  | "debug"
-  | "telemetry";
+export type LogType = "success" | "info" | "warn" | "error" | "debug" | "telemetry";
 
 export type Filter = {
-  pattern: RegExp;
-  severity: "critical" | "high" | "medium" | "low";
-  description: string;
+    pattern: RegExp;
+    severity: "critical" | "high" | "medium" | "low";
+    description: string;
 };
 
 export type PatternConfig = {
-  pattern: string;
-  severity: "critical" | "high" | "medium" | "low";
-  description: string;
+    pattern: string;
+    severity: "critical" | "high" | "medium" | "low";
+    description: string;
 };

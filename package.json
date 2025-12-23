@@ -1,36 +1,49 @@
 {
-  "name": "grok-server",
-  "version": "0.2.0",
-  "description": "just a simple express api for running grok on leveret",
-  "main": "dist/server.js",
-  "scripts": {
-    "build": "tsc",
-    "dev": "ts-node src/server.ts"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/D-Alessian/grok-server.git"
-  },
-  "author": "D-Alessian",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/D-Alessian/grok-server/issues"
-  },
-  "homepage": "https://github.com/D-Alessian/grok-server#readme",
-  "dependencies": {
-    "discord.js": "^14.23.2",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "fs": "^0.0.1-security",
-    "openai": "^6.3.0",
-    "redis": "^5.8.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "zod": "^4.1.12"
-  },
-  "devDependencies": {
-    "@types/express": "^5.0.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
-  }
+    "name": "hog-api",
+    "version": "0.3.0",
+    "description": "just a simple express api for running grok on leveret",
+    "main": "dist/Server.js",
+    "scripts": {
+        "build": "tsc",
+        "dev": "ts-node src/Server.ts",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "lint:check": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "lint:report": "eslint \"src/**/*.ts\" --format json --output-file temp/lint/eslint_report.json"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/D-Alessian/grok-server.git"
+    },
+    "author": "D-Alessian",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/D-Alessian/grok-server/issues"
+    },
+    "homepage": "https://github.com/D-Alessian/grok-server#readme",
+    "dependencies": {
+        "discord.js": "^14.23.2",
+        "dotenv": "^17.2.3",
+        "eslint": "^9.39.2",
+        "eslint-plugin-n": "^17.23.1",
+        "eslint-plugin-simple-import-sort": "^12.1.1",
+        "eslint-plugin-sonarjs": "^3.0.5",
+        "eslint-plugin-unused-imports": "^4.3.0",
+        "express": "^5.1.0",
+        "fs": "^0.0.1-security",
+        "jiti": "^2.6.1",
+        "openai": "^6.3.0",
+        "prettier": "^3.7.4",
+        "redis": "^5.8.3",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3",
+        "typescript-eslint": "^8.50.1",
+        "zod": "^4.1.12"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.3",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.9.3"
+    }
 }

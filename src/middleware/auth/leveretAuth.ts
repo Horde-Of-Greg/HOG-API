@@ -1,83 +1,67 @@
-import { Request, Response, NextFunction } from "express";
-import { config } from "../../config/config";
 import { createHash, verify } from "crypto";
+import type { NextFunction, Request, Response } from "express";
+
+import { config } from "../../config/config";
+import { getLogger } from "../../helpers/Logger";
 import { LEVERET_PUBLIC_KEY } from "../../loaders/keys";
-import { getLogger } from "../../utils/Logger";
 
-export const leveretAuth = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const authResult = authRequest(req);
+export const leveretAuth = (req: Request, res: Response, next: NextFunction): void => {
+    const authResult = authRequest(req);
 
-  if (!authResult) {
-    getLogger().simpleLog("warn", "Unauthorized Request For Leveret");
-    res.status(401).json({ error: "Unauthorized" });
-    return;
-  }
-  getLogger().simpleLog("telemetry", "Authorized Leveret Request");
-  req.flags = { isLeveret: true };
-  next();
+    if (!authResult) {
+        getLogger().simpleLog("warn", "Unauthorized Request For Leveret");
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+    }
+    getLogger().simpleLog("telemetry", "Authorized Leveret Request");
+    req.flags = { isLeveret: true };
+    next();
 };
 
 const HEADERS = {
-  signature: "x-leveret-signature-ed25519",
-  tag: "x-leveret-tag",
-  timestamp: "x-leveret-timestamp",
-  requestId: "x-leveret-request-id",
+    signature: "x-leveret-signature-ed25519",
+    tag: "x-leveret-tag",
+    timestamp: "x-leveret-timestamp",
+    requestId: "x-leveret-request-id",
 };
 
 function authRequest(req: any) {
-  if (config.SKIP_LEVERET_AUTH) return true;
+    if (config.SKIP_LEVERET_AUTH) return true;
 
-  // Mostly from https://gist.github.com/NotMyWing/632d738644c17aa71931169af5cb2767
-  const headers = req.headers ?? {};
-  const signatureB64 = headers[HEADERS.signature];
-  const tagName = headers[HEADERS.tag];
-  const timestamp = headers[HEADERS.timestamp];
-  const requestId = headers[HEADERS.requestId];
+    // Mostly from https://gist.github.com/NotMyWing/632d738644c17aa71931169af5cb2767
+    const headers = req.headers ?? {};
+    const signatureB64 = headers[HEADERS.signature];
+    const tagName = headers[HEADERS.tag];
+    const timestamp = headers[HEADERS.timestamp];
+    const requestId = headers[HEADERS.requestId];
 
-  // Do less expensive checks first to save on potential compute
-  if (!signatureB64 || !tagName) {
-    getLogger().simpleLog(
-      "warn",
-      "LEVE_AUTH: Could not find signatureB64 nor tagName"
-    );
-    return false;
-  }
-  if (!config.ACCEPTED_TAGS.includes(tagName)) {
-    getLogger().simpleLog(
-      "warn",
-      "LEVE_AUTH: Could not find tagName in the accepted tags"
-    );
-    return false;
-  }
+    // Do less expensive checks first to save on potential compute
+    if (!signatureB64 || !tagName) {
+        getLogger().simpleLog("warn", "LEVE_AUTH: Could not find signatureB64 nor tagName");
+        return false;
+    }
+    if (!config.ACCEPTED_TAGS.includes(tagName)) {
+        getLogger().simpleLog("warn", "LEVE_AUTH: Could not find tagName in the accepted tags");
+        return false;
+    }
 
-  const method = String(req.method ?? "GET").toUpperCase();
-  const host = req.get?.("host") ?? headers.host;
-  if (!host) {
-    getLogger().simpleLog("warn", "LEVE_AUTH: Could not find host");
-    return false;
-  }
+    const method = String(req.method ?? "GET").toUpperCase();
+    const host = req.get?.("host") ?? headers.host;
+    if (!host) {
+        getLogger().simpleLog("warn", "LEVE_AUTH: Could not find host");
+        return false;
+    }
 
-  const url = `${req.protocol ?? "https"}://${host}${
-    req.originalUrl ?? req.url ?? ""
-  }`;
-  const bodyHash = createHash("sha256").update(req.rawBody).digest("hex");
-  const canonical = [timestamp, requestId, method, url, bodyHash].join("\n");
+    const url = `${req.protocol ?? "https"}://${host}${req.originalUrl ?? req.url ?? ""}`;
+    const bodyHash = createHash("sha256").update(req.rawBody).digest("hex");
+    const canonical = [timestamp, requestId, method, url, bodyHash].join("\n");
 
-  const signature = Buffer.from(signatureB64, "base64");
-  const valid = verify(
-    null,
-    Buffer.from(canonical),
-    LEVERET_PUBLIC_KEY,
-    signature
-  );
-  if (!valid) {
-    getLogger().simpleLog("warn", "LEVE_AUTH: Invalid signature");
-    return false;
-  }
+    const signature = Buffer.from(signatureB64, "base64");
+    const valid = verify(null, Buffer.from(canonical), LEVERET_PUBLIC_KEY, signature);
+    if (!valid) {
+        getLogger().simpleLog("warn", "LEVE_AUTH: Invalid signature");
+        return false;
+    }
 
-  return true;
+    return true;
 }

@@ -1,25 +1,22 @@
 import { z } from "zod";
 
 export const AiInputDataSchema = z.object({
-  userId: z.string().min(1, "userId cannot be empty"),
-  prompt: z
-    .string()
-    .min(1, "prompt cannot be empty")
-    .max(10000, "prompt too long"),
-  context: z.string().max(5000, "context too long"),
-  attachment: z.url("attachment must be a valid URL").nullable(),
+    userId: z.string().min(1, "userId cannot be empty"),
+    prompt: z.string().min(1, "prompt cannot be empty").max(10000, "prompt too long"),
+    context: z.string().max(5000, "context too long"),
+    attachment: z.url("attachment must be a valid URL").nullable(),
 });
 export type AiInputData = z.infer<typeof AiInputDataSchema>;
 
 export type ModelChoice = "grok-3-mini" | "grok-4-0709";
 
 const GrokTokenizeReqSchema = z.object({
-  token_ids: z.array(
-    z.object({
-      token_id: z.number(),
-      string_token: z.string(),
-      token_bytes: z.array(z.number()),
-    })
-  ),
+    token_ids: z.array(
+        z.object({
+            token_id: z.number(),
+            string_token: z.string(),
+            token_bytes: z.array(z.number()),
+        }),
+    ),
 });
 export type GrokTokenizeReq = z.infer<typeof GrokTokenizeReqSchema>;
