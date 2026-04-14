@@ -2,9 +2,7 @@
 
 node_modules/
 
-storage/config/*.json
-storage/db
-storage/logs
+src/config/*.json
 
 logs/
 
@@ -13,3 +11,5 @@ ecosystem.config.js
 dist/
 
 .DS_Store
+
+src-old/
